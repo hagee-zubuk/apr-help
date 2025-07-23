@@ -141,6 +141,50 @@ var_dump($e);
         // echo PHP_EOL .'</pre>';
     }
 
+    public function logout() {
+        if (strlen($this->rest_url) < 7) {
+            echo 'not apparently logged in!';
+            return;
+        }
+        $this->load->library('Guzzle');
+        $cli = new GuzzleHttp\Client( [ GuzzleHttp\RequestOptions::VERIFY => \Composer\CaBundle\CaBundle::getSystemCaRootBundlePath() ] );
+        $url = 'https://login.mip.com/api/v1/sso/mipadv/logout';
+        $bod = '';
+        try {
+            # guzzle post request example with form parameter
+            $response = $cli->request( 'GET'
+                    , $url
+                    , [
+                            'allow_redirects' =>  false
+                            , 'body' => $bod
+                            , 'headers' => [ 'Content-type' => 'application/json'
+                                    , 'Authorization-Token' => $this->acc_tokn
+                                ]
+                        ]
+                    );
+            #guzzle repose for future use
+            echo PHP_EOL .'URL: '. $url; // 200
+            echo PHP_EOL .'Statuscode: '. $response->getStatusCode(); // 200
+            echo PHP_EOL .'Reason: '. $response->getReasonPhrase(); // OK
+            $json = $response->getBody();
+            $aryR = json_decode($json);
+            $intRet = file_put_contents($this->loginfile, '');
+            echo PHP_EOL;
+        } catch (GuzzleHttp\Exception\BadResponseException $e) {
+            #guzzle repose for future use
+            $response = $e->getResponse();
+            $responseBodyAsString = $response->getBody()->getContents();
+            // print_r($responseBodyAsString);
+echo '*** ERROR!'. PHP_EOL . PHP_EOL . PHP_EOL . $responseBodyAsString . PHP_EOL . PHP_EOL;
+var_dump($response);
+        } catch(Exception $e) {
+echo 'ERROR!'. PHP_EOL;
+var_dump($e);
+        } finally {
+            echo 'LOGOUT: '. date('Y-m-d H:i:s');
+        }
+    }
+
     public function getVendors() {
         if (strlen($this->rest_url) < 7) {
             // needs login!
