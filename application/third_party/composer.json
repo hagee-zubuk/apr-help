@@ -1,10 +1,16 @@
 {
+    "name": "hagee/web",
+    "description": "AP helper website",
+    "type": "project",
+    "license": "GNU",
+    "authors": [
+        {
+            "name": "Sarmago-Hagee"
+        }
+    ],
     "require": {
-        "phpoffice/phpspreadsheet": "^1.25"
-    },
-    "config": {
-	    "platform": {
-		    "php": "7.4"
-	    }
+        "guzzlehttp/guzzle": "^7.9"
+        ,"composer/ca-bundle": ">=1.5"
+        ,"phpoffice/phpspreadsheet": ">=1.25"
     }
 }
