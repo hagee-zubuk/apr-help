@@ -60,6 +60,8 @@ class Rest extends CI_Controller {
     private function loadlogindata() {
         if(file_exists($this->loginfile)) {
             $json = file_get_contents($this->loginfile, FALSE);
+            if(is_null($json)) return FALSE;
+            if(strlen($json) < 3) return FALSE;
             $aryR = json_decode($json);
             try {
                 $this->rest_url = $aryR->RestApiUrl;
@@ -303,6 +305,7 @@ var_dump($e);
         echo date('Y-m-d H:i:s');
 //        echo PHP_EOL .'</pre>';
 
+        $this->logout();
     }
 
 
@@ -430,6 +433,7 @@ var_dump($e);
             ob_flush();
         }
 
+        $this->logout();
     }
 
 
@@ -549,6 +553,8 @@ var_dump($e);
         echo PHP_EOL .'Time elapsed: '. ($dtEnd - $dtSta);
         echo 'mip_tblAcctCode_xx refresh done :: '. date('Y-m-d H:i:s');
 //        echo PHP_EOL .'</pre>';
+
+        $this->logout();
     }
 
 
@@ -652,6 +658,8 @@ var_dump($e);
         echo PHP_EOL .'Time elapsed: '. ($dtEnd - $dtSta);
         echo PHP_EOL .'mip_tblAcctCode_'. $seg .' refresh done :: '. date('Y-m-d H:i:s');
         // echo PHP_EOL .'</pre>';
+
+        $this->logout();
     }
 
 }
