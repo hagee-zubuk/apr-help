@@ -1,3 +1,6 @@
+<?php
+if (!is_int($logtime)) $logtime = 0;
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
