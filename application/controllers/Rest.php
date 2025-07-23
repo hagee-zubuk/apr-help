@@ -10,7 +10,7 @@ class Rest extends CI_Controller {
         parent::__construct();
         $this->load->helper('url');
         $this->load->model('Mip_model');
-        $this->loginfile = APPPATH .'tmp'. DIRECTORY_SEPARATOR .'rest.json';
+        $this->loginfile = "C:\\Work\\helpers\\application\\tmp\\rest.json";
         $this->acc_tokn = '';
         $this->rest_url = '';
 
@@ -89,17 +89,18 @@ class Rest extends CI_Controller {
 
     public function login() {
         $this->load->library('Guzzle');
-        $cli = new GuzzleHttp\Client( [ GuzzleHttp\RequestOptions::VERIFY => \Composer\CaBundle\CaBundle::getSystemCaRootBundlePath() ] );
+        $cli = new GuzzleHttp\Client( [ GuzzleHttp\RequestOptions::VERIFY => FALSE ] );
+        // [ GuzzleHttp\RequestOptions::VERIFY => \Composer\CaBundle\CaBundle::getSystemCaRootBundlePath() ] );
 
         $url = 'https://login.mip.com/api/v1/sso/mipadv/login';
         $bod =  json_encode(
                     array('username'  => 'api.read'
-                        , 'password'  => 'Pav3way%'
+                        , 'password'  => 'blueSt@rt57'
                         , 'org' => 'ACA_13903_TEST'
                     )
                 );
         // echo '<pre>';
-
+echo 'do login()..'. PHP_EOL;
         header("Content-Type: text/plain");
 
         try {
@@ -129,8 +130,14 @@ Body: {"RestApiUrl":"https://api.mip.com/","AccessToken":"ACA_13903_SYS_M$C_CHN5
             $response = $e->getResponse();
             $responseBodyAsString = $response->getBody()->getContents();
             // print_r($responseBodyAsString);
+echo '*** ERROR!'. PHP_EOL . PHP_EOL . PHP_EOL . $responseBodyAsString . PHP_EOL . PHP_EOL;
+var_dump($response);
+        } catch(Exception $e) {
+echo 'ERROR!'. PHP_EOL;
+var_dump($e);
+        } finally {
+            echo date('Y-m-d H:i:s');
         }
-        echo date('Y-m-d H:i:s');
         // echo PHP_EOL .'</pre>';
     }
 
@@ -157,7 +164,7 @@ Body: {"RestApiUrl":"https://api.mip.com/","AccessToken":"ACA_13903_SYS_M$C_CHN5
         $base = $this->rest_url .'api/v1/maintain/vendors?page[size]=' .$sz;
         $url = $base . '&page[number]='. $pg_num;
         $bod = '';
-        echo '<pre>';
+//        echo '<pre>';
         echo date('Y-m-d H:i:s') . PHP_EOL;
         $dtSta = strtotime(date('Y-m-d H:i:s'));
         #guzzle
@@ -250,7 +257,7 @@ Body: {"RestApiUrl":"https://api.mip.com/","AccessToken":"ACA_13903_SYS_M$C_CHN5
         $dtEnd = strtotime(date('Y-m-d H:i:s'));
         echo PHP_EOL .'mip_tblAPVendor refresh :: time elapsed: '. ($dtEnd - $dtSta) .'s'. PHP_EOL;
         echo date('Y-m-d H:i:s');
-        echo PHP_EOL .'</pre>';
+//        echo PHP_EOL .'</pre>';
 
     }
 
@@ -405,7 +412,7 @@ Body: {"RestApiUrl":"https://api.mip.com/","AccessToken":"ACA_13903_SYS_M$C_CHN5
         $base = $this->rest_url .'api/v1/maintain/ChartOfAccounts?page[size]=' .$sz;
         $url = $base . '&page[number]='. $pg_num;
         $bod = '';
-        echo '<pre>';
+//        echo '<pre>';
         $dtSta = strtotime(date('Y-m-d H:i:s'));
         #guzzle
         try {
@@ -497,7 +504,7 @@ Body: {"RestApiUrl":"https://api.mip.com/","AccessToken":"ACA_13903_SYS_M$C_CHN5
         $dtEnd = strtotime(date('Y-m-d H:i:s'));
         echo PHP_EOL .'Time elapsed: '. ($dtEnd - $dtSta);
         echo 'mip_tblAcctCode_xx refresh done :: '. date('Y-m-d H:i:s');
-        echo PHP_EOL .'</pre>';
+//        echo PHP_EOL .'</pre>';
     }
 
 
