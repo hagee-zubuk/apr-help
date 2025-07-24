@@ -1,5 +1,10 @@
 <?php
-if (!is_int($logtime)) $logtime = 0;
+if (!is_int($logtime)) {
+    $logtime = 0;
+    $logout = '';
+} else {
+    $logout = '<div style="display: inline-block; font-size: 70%;">(<a href="#" class="out">logout</a>)</div>'. PHP_EOL;
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -15,8 +20,10 @@ if (!is_int($logtime)) $logtime = 0;
         <h1 class="title">MIP REST Refresh</h1>
         <div class="columns">
             <div class="column is-4">
-    <p>Last apparent fetch: <?= date('m/d/y H:i', $logtime) ?> (GMT)</p>
-    <p>MIP Base URL: <b><?= $resturl?></b> </p>
+    <p style="font-size: 80%;">
+        Last apparent login: <?= date('m/d/y H:i', $logtime) ?> (GMT)
+    </p>
+    <!-- p>MIP Base URL: <b><?= $resturl?></b> </p -->
 
     <table id="tblButtons">
         <tr><td></td><td>
@@ -71,6 +78,9 @@ if (!is_int($logtime)) $logtime = 0;
     <img src="<?= base_url('images/wait.gif') ?>" alt="wait"/>
     <p>...please wait. this takes awhile...</p>
 </div>
+<div style="width: 100%; text-align: center;">
+    <?= $logout?>
+</div>
         </div><!-- column -->
         <div class="column">
             <div id="debugsection" style="margin-top: 5%;">
@@ -113,6 +123,14 @@ $(document).ready(function() {
                 $('#tblButtons').hide();
                 $('#wait').show();
                 doRest('login');
+            });
+        $('.out').on('click', function(e) {
+                e.preventDefault();
+                var lbl = "Logout";
+                $('#txtOpn').val(lbl);
+                $('#tblButtons').hide();
+                $('#wait').show();
+                doRest('logout');
             });
         $('.glo').on('click', function(e) {
                 e.preventDefault();

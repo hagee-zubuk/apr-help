@@ -90,6 +90,10 @@ class Rest extends CI_Controller {
     }
 
     public function login() {
+        if (strlen($this->rest_url) > 7) {
+            $this->logout();
+        }
+        
         $this->load->library('Guzzle');
         $cli = new GuzzleHttp\Client( [ GuzzleHttp\RequestOptions::VERIFY => FALSE ] );
         // [ GuzzleHttp\RequestOptions::VERIFY => \Composer\CaBundle\CaBundle::getSystemCaRootBundlePath() ] );
@@ -170,8 +174,10 @@ var_dump($e);
             echo PHP_EOL .'Reason: '. $response->getReasonPhrase(); // OK
             $json = $response->getBody();
             $aryR = json_decode($json);
-            $intRet = file_put_contents($this->loginfile, '');
+            // $intRet = file_put_contents($this->loginfile, '');
+
             echo PHP_EOL;
+            var_dump($aryR);
         } catch (GuzzleHttp\Exception\BadResponseException $e) {
             #guzzle repose for future use
             $response = $e->getResponse();
