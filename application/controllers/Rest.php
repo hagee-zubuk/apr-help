@@ -90,9 +90,9 @@ class Rest extends CI_Controller {
     }
 
     public function login() {
-        if (strlen($this->rest_url) > 7) {
-            $this->logout();
-        }
+        //if (strlen($this->rest_url) > 7) {
+        $this->logout();
+        //}
         
         $this->load->library('Guzzle');
         $cli = new GuzzleHttp\Client( [ GuzzleHttp\RequestOptions::VERIFY => FALSE ] );
@@ -106,7 +106,7 @@ class Rest extends CI_Controller {
                     )
                 );
         // echo '<pre>';
-echo 'do login()..'. PHP_EOL;
+        echo 'do login()..'. PHP_EOL;
         header("Content-Type: text/plain");
 
         try {
@@ -117,41 +117,48 @@ echo 'do login()..'. PHP_EOL;
                             , 'headers' => [ 'Content-type' => 'application/json' ]
                         ]
                     );
-            echo PHP_EOL .'Statuscode: '. $response->getStatusCode(); // 200
+            $sta = $response->getStatusCode();
+            echo PHP_EOL .'Statuscode: '. $sta; // 200
             echo PHP_EOL .'Reason: '. $response->getReasonPhrase(); // OK
             echo PHP_EOL .'Protocol: '. $response->getProtocolVersion(); // 1.1
             $json = $response->getBody();
             echo PHP_EOL .'Body: '. $json . PHP_EOL . PHP_EOL;
+            //$aryLog = array('login_statuscode' => $sta, )
             $aryR = json_decode($json);
+            if($sta < 300) {
+                $aryR['login_statuscode'] = $sta;
+                $this->load->model('Login_model');
+                $this->Login_model->create_logRow($aryR);
+            }
+            
             // var_dump($aryR);
             
             $intRet = file_put_contents($this->loginfile, $json);
             echo '** login OK. save returns: '. $intRet .'   '. PHP_EOL;
+            
             // echo PHP_EOL;
-/*
-Body: {"RestApiUrl":"https://api.mip.com/","AccessToken":"ACA_13903_SYS_M$C_CHN5eY76j6KFH-xm0EyPZfww01iQq62Z"}
-*/
+
         } catch (GuzzleHttp\Exception\BadResponseException $e) {
             #guzzle repose for future use
             $response = $e->getResponse();
             $responseBodyAsString = $response->getBody()->getContents();
             // print_r($responseBodyAsString);
-echo '*** ERROR!'. PHP_EOL . PHP_EOL . PHP_EOL . $responseBodyAsString . PHP_EOL . PHP_EOL;
-var_dump($response);
+            echo '*** ERROR!'. PHP_EOL . PHP_EOL . PHP_EOL . $responseBodyAsString . PHP_EOL . PHP_EOL;
+            var_dump($response);
         } catch(Exception $e) {
-echo 'ERROR!'. PHP_EOL;
-var_dump($e);
+            echo '** ERROR!'. PHP_EOL;
+            var_dump($e);
         } finally {
             echo date('Y-m-d H:i:s');
         }
         // echo PHP_EOL .'</pre>';
     }
 
-    public function logout() {
-        if (strlen($this->rest_url) < 7) {
-            echo 'not apparently logged in!';
-            return;
-        }
+
+    private function logout_actual($rec) {
+        
+        $acc_tokn = $rec['AccessToken'];
+
         $this->load->library('Guzzle');
         $cli = new GuzzleHttp\Client( [ GuzzleHttp\RequestOptions::VERIFY => \Composer\CaBundle\CaBundle::getSystemCaRootBundlePath() ] );
         $url = 'https://login.mip.com/api/v1/sso/mipadv/logout';
@@ -164,34 +171,68 @@ var_dump($e);
                             'allow_redirects' =>  false
                             , 'body' => $bod
                             , 'headers' => [ 'Content-type' => 'application/json'
-                                    , 'Authorization-Token' => $this->acc_tokn
+                                    , 'Authorization-Token' => $acc_tokn
                                 ]
                         ]
                     );
             #guzzle repose for future use
-            echo PHP_EOL .'URL: '. $url; // 200
-            echo PHP_EOL .'Statuscode: '. $response->getStatusCode(); // 200
-            echo PHP_EOL .'Reason: '. $response->getReasonPhrase(); // OK
+            // echo PHP_EOL .'URL: '. $url; // 200
+            $sta = $response->getStatusCode();
+            // echo PHP_EOL .'Statuscode: '. $sta; // 200
+            // echo PHP_EOL .'Reason: '. $response->getReasonPhrase(); // OK
             $json = $response->getBody();
             $aryR = json_decode($json);
             // $intRet = file_put_contents($this->loginfile, '');
-
-            echo PHP_EOL;
-            var_dump($aryR);
+            $rec['logout_response'] = $json;
+            $rec['logout_statuscode'] = $sta;
+            // echo PHP_EOL;
+            // var_dump($aryR);
         } catch (GuzzleHttp\Exception\BadResponseException $e) {
             #guzzle repose for future use
             $response = $e->getResponse();
             $responseBodyAsString = $response->getBody()->getContents();
+            $rec['logout_response'] = '** ERROR! '. $responseBodyAsString;
+            $rec['logout_statuscode'] = 500;
             // print_r($responseBodyAsString);
-echo '*** ERROR!'. PHP_EOL . PHP_EOL . PHP_EOL . $responseBodyAsString . PHP_EOL . PHP_EOL;
-var_dump($response);
+            echo '*** ERROR!'. PHP_EOL . PHP_EOL . PHP_EOL . $responseBodyAsString . PHP_EOL . PHP_EOL;
+            var_dump($response);
         } catch(Exception $e) {
-echo 'ERROR!'. PHP_EOL;
-var_dump($e);
+            echo 'ERROR!'. PHP_EOL;
+            var_dump($e);
+            $rec['logout_response'] = '* ERROR! '. $e->getMessage();
         } finally {
             echo 'LOGOUT: '. date('Y-m-d H:i:s');
         }
+        return($rec);
     }
+
+
+    public function logout() {
+/*        if (strlen($this->rest_url) < 7) {
+
+            echo 'not apparently logged in!';
+            return;
+        }
+*/
+        $this->load->model('Login_model');
+        $logrecs = $this->Login_model->getLoginAccessToken();
+        if ($logrecs !== FALSE) {
+            foreach($logrecs as $l) {
+                $guid = $l['guid'];
+                if ($l['logout_statuscode'] !== 200) {
+                    $ary = $this->logout_actual($l);
+                    unset($ary['guid']);
+                    $this->Login_model->update_LogRow($guid, $ary);
+                } else {
+                    echo 'INFO: '. $l['logout_response'] .PHP_EOL;
+                }
+            }
+        } else {
+            echo 'INFO: no rows'. PHP_EOL;
+        }
+        
+    }
+
 
     public function getVendors() {
         if (strlen($this->rest_url) < 7) {
