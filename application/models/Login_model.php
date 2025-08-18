@@ -15,7 +15,6 @@ class Login_model extends CI_Model {
 		$this->errMesg = 'no guids found';
 		if (strlen(trim($ary['guid'])) < 10) return FALSE;
 
-		$tabl = 'mip_tblAcctCode_'. $seg;
 		if(!isset($ary['ts'])) 	$ary['ts'] 	= date( 'Y-m-d H:i:s' );
 
 		$ret = $this->db->insert('mip_Logins', $ary);

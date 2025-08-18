@@ -124,9 +124,11 @@ class Rest extends CI_Controller {
             $json = $response->getBody();
             echo PHP_EOL .'Body: '. $json . PHP_EOL . PHP_EOL;
             //$aryLog = array('login_statuscode' => $sta, )
-            $aryR = json_decode($json);
+            $aryR = json_decode($json, TRUE);
             if($sta < 300) {
                 $aryR['login_statuscode'] = $sta;
+                $aryR['rawJSON'] = $json;
+                $aryR['guid'] = $this->mkGUID();
                 $this->load->model('Login_model');
                 $this->Login_model->create_logRow($aryR);
             }
@@ -201,7 +203,7 @@ class Rest extends CI_Controller {
             var_dump($e);
             $rec['logout_response'] = '* ERROR! '. $e->getMessage();
         } finally {
-            echo 'LOGOUT: '. date('Y-m-d H:i:s');
+            echo 'LOGOUT: '. date('Y-m-d H:i:s') . PHP_EOL;
         }
         return($rec);
     }
@@ -217,15 +219,21 @@ class Rest extends CI_Controller {
         $this->load->model('Login_model');
         $logrecs = $this->Login_model->getLoginAccessToken();
         if ($logrecs !== FALSE) {
+            $cnt = 0;
             foreach($logrecs as $l) {
                 $guid = $l['guid'];
                 if ($l['logout_statuscode'] !== 200) {
+                    //echo 'GO'. PHP_EOL;
                     $ary = $this->logout_actual($l);
+                    unset($ary['ix']);
+                    unset($ary['ts']);
                     unset($ary['guid']);
                     $this->Login_model->update_LogRow($guid, $ary);
                 } else {
-                    echo 'INFO: '. $l['logout_response'] .PHP_EOL;
+                    echo 'INFO: skipping: '. $l['ix'] .PHP_EOL;
                 }
+                $cnt++;
+                if ($cnt > 10) break;
             }
         } else {
             echo 'INFO: no rows'. PHP_EOL;
