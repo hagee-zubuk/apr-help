@@ -9,7 +9,7 @@ class Reports_model extends CI_Model {
 
 	public function fetchTransactions($filt = '') {
 		$sql = <<<IHAVENOTSEASONEDTHEMEAT
-SELECT txn.[guid], txn.[txn_no]
+SELECT txn.[guid], COALESCE(txn.[txn_no], '-') AS [txn_no]
 	, txn.[create_at] AS [date_created]
 	, txn.[due_dt] AS [date_due]
 	, txn.[entity_id]
@@ -53,6 +53,7 @@ WHERE txn.[txn_no] > 100
 $filt
 ORDER BY txn.[txn_no]
 IHAVENOTSEASONEDTHEMEAT;
+
 		$qry = $this->db->query($sql);
 		if ($qry->num_rows() > 0 ) {
 			return $qry->result();

@@ -48,7 +48,8 @@ class Reports extends CI_Controller {
 
 			foreach($txns as $t) {
 				$stat = ($t->hold == 1) ? "HOLD" : "pending";
-				$sheet->setCellValueByColumnAndRow( 1, $row, $t->txn_no);
+				// echo $t->guid .'<br />'. PHP_EOL;
+				$sheet->setCellValueByColumnAndRow( 1, $row, strval($t->txn_no) );
 				$sheet->setCellValueByColumnAndRow( 2, $row, date('m/d/y', strtotime($t->date_created)) );
 				$sheet->setCellValueByColumnAndRow( 3, $row, date('m/d/y', strtotime($t->date_due)) );
 				$sheet->setCellValueByColumnAndRow( 4, $row, $t->entity_id );
