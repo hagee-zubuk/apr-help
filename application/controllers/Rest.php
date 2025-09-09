@@ -163,7 +163,8 @@ class Rest extends CI_Controller {
 
         $this->load->library('Guzzle');
         $cli = new GuzzleHttp\Client( [ GuzzleHttp\RequestOptions::VERIFY => \Composer\CaBundle\CaBundle::getSystemCaRootBundlePath() ] );
-        $url = 'https://login.mip.com/api/v1/sso/mipadv/logout';
+        //$url = 'https://login.mip.com/api/v1/sso/mipadv/logout';
+        $url = 'https://api.mip.com/api/security/logout';
         $bod = '';
         try {
             # guzzle post request example with form parameter
