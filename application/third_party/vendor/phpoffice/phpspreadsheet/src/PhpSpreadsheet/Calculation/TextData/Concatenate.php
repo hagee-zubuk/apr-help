@@ -56,7 +56,7 @@ class Concatenate
      *         If an array of values is passed for the $delimiter or $ignoreEmpty arguments, then the returned result
      *            will also be an array with matching dimensions
      */
-    public static function TEXTJOIN(mixed $delimiter = '', mixed $ignoreEmpty = true, mixed ...$args): array|string
+    public static function TEXTJOIN($delimiter, $ignoreEmpty, ...$args)
     {
         if (is_array($delimiter) || is_array($ignoreEmpty)) {
             return self::evaluateArrayArgumentsSubset(
@@ -68,35 +68,29 @@ class Concatenate
             );
         }
 
-        $delimiter ??= '';
-        $ignoreEmpty ??= true;
+        // Loop through arguments
         $aArgs = Functions::flattenArray($args);
-        $returnValue = self::evaluateTextJoinArray($ignoreEmpty, $aArgs);
-
-        $returnValue ??= implode($delimiter, $aArgs);
-        if (StringHelper::countCharacters($returnValue) > DataType::MAX_STRING_LENGTH) {
-            $returnValue = ExcelError::CALC();
-        }
-
-        return $returnValue;
-    }
-
-    private static function evaluateTextJoinArray(bool $ignoreEmpty, array &$aArgs): ?string
-    {
+        $returnValue = '';
         foreach ($aArgs as $key => &$arg) {
             $value = Helpers::extractString($arg);
             if (ErrorValue::isError($value)) {
-                return $value;
-            }
+                $returnValue = $value;
 
-            if ($ignoreEmpty === true && ((is_string($arg) && trim($arg) === '') || $arg === null)) {
+                break;
+            }
+            if ($ignoreEmpty === true && is_string($arg) && trim($arg) === '') {
                 unset($aArgs[$key]);
             } elseif (is_bool($arg)) {
                 $arg = Helpers::convertBooleanValue($arg);
             }
         }
 
-        return null;
+        $returnValue = ($returnValue !== '') ? $returnValue : implode($delimiter, $aArgs);
+        if (StringHelper::countCharacters($returnValue) > DataType::MAX_STRING_LENGTH) {
+            $returnValue = ExcelError::CALC();
+        }
+
+        return $returnValue;
     }
 
     /**
@@ -113,7 +107,7 @@ class Concatenate
      *         If an array of values is passed for the $stringValue or $repeatCount arguments, then the returned result
      *            will also be an array with matching dimensions
      */
-    public static function builtinREPT(mixed $stringValue, mixed $repeatCount): array|string
+    public static function builtinREPT($stringValue, $repeatCount)
     {
         if (is_array($stringValue) || is_array($repeatCount)) {
             return self::evaluateArrayArguments([self::class, __FUNCTION__], $stringValue, $repeatCount);

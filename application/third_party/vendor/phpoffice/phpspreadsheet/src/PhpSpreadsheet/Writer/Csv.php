@@ -4,58 +4,77 @@ namespace PhpOffice\PhpSpreadsheet\Writer;
 
 use PhpOffice\PhpSpreadsheet\Calculation\Calculation;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
-use Stringable;
 
 class Csv extends BaseWriter
 {
     /**
      * PhpSpreadsheet object.
+     *
+     * @var Spreadsheet
      */
-    private Spreadsheet $spreadsheet;
+    private $spreadsheet;
 
     /**
      * Delimiter.
+     *
+     * @var string
      */
-    private string $delimiter = ',';
+    private $delimiter = ',';
 
     /**
      * Enclosure.
+     *
+     * @var string
      */
-    private string $enclosure = '"';
+    private $enclosure = '"';
 
     /**
      * Line ending.
+     *
+     * @var string
      */
-    private string $lineEnding = PHP_EOL;
+    private $lineEnding = PHP_EOL;
 
     /**
      * Sheet index to write.
+     *
+     * @var int
      */
-    private int $sheetIndex = 0;
+    private $sheetIndex = 0;
 
     /**
-     * Whether to write a UTF8 BOM.
+     * Whether to write a BOM (for UTF8).
+     *
+     * @var bool
      */
-    private bool $useBOM = false;
+    private $useBOM = false;
 
     /**
      * Whether to write a Separator line as the first line of the file
      *     sep=x.
+     *
+     * @var bool
      */
-    private bool $includeSeparatorLine = false;
+    private $includeSeparatorLine = false;
 
     /**
      * Whether to write a fully Excel compatible CSV file.
+     *
+     * @var bool
      */
-    private bool $excelCompatibility = false;
+    private $excelCompatibility = false;
 
     /**
      * Output encoding.
+     *
+     * @var string
      */
-    private string $outputEncoding = '';
+    private $outputEncoding = '';
 
     /**
      * Create a new CSV.
+     *
+     * @param Spreadsheet $spreadsheet Spreadsheet object
      */
     public function __construct(Spreadsheet $spreadsheet)
     {
@@ -105,8 +124,11 @@ class Csv extends BaseWriter
         $maxRow = $sheet->getHighestDataRow();
 
         // Write rows to file
-        foreach ($sheet->rangeToArrayYieldRows("A1:$maxCol$maxRow", '', $this->preCalculateFormulas) as $cellsArray) {
-            $this->writeLine($this->fileHandle, $cellsArray);
+        for ($row = 1; $row <= $maxRow; ++$row) {
+            // Convert the row to an array...
+            $cellsArray = $sheet->rangeToArray('A' . $row . ':' . $maxCol . $row, '', $this->preCalculateFormulas);
+            // ... and write to the file
+            $this->writeLine($this->fileHandle, $cellsArray[0]);
         }
 
         $this->maybeCloseFileHandle();
@@ -114,36 +136,72 @@ class Csv extends BaseWriter
         Calculation::getInstance($this->spreadsheet)->getDebugLog()->setWriteDebugLog($saveDebugLog);
     }
 
-    public function getDelimiter(): string
+    /**
+     * Get delimiter.
+     *
+     * @return string
+     */
+    public function getDelimiter()
     {
         return $this->delimiter;
     }
 
-    public function setDelimiter(string $delimiter): self
+    /**
+     * Set delimiter.
+     *
+     * @param string $delimiter Delimiter, defaults to ','
+     *
+     * @return $this
+     */
+    public function setDelimiter($delimiter)
     {
         $this->delimiter = $delimiter;
 
         return $this;
     }
 
-    public function getEnclosure(): string
+    /**
+     * Get enclosure.
+     *
+     * @return string
+     */
+    public function getEnclosure()
     {
         return $this->enclosure;
     }
 
-    public function setEnclosure(string $enclosure = '"'): self
+    /**
+     * Set enclosure.
+     *
+     * @param string $enclosure Enclosure, defaults to "
+     *
+     * @return $this
+     */
+    public function setEnclosure($enclosure = '"')
     {
         $this->enclosure = $enclosure;
 
         return $this;
     }
 
-    public function getLineEnding(): string
+    /**
+     * Get line ending.
+     *
+     * @return string
+     */
+    public function getLineEnding()
     {
         return $this->lineEnding;
     }
 
-    public function setLineEnding(string $lineEnding): self
+    /**
+     * Set line ending.
+     *
+     * @param string $lineEnding Line ending, defaults to OS line ending (PHP_EOL)
+     *
+     * @return $this
+     */
+    public function setLineEnding($lineEnding)
     {
         $this->lineEnding = $lineEnding;
 
@@ -152,16 +210,22 @@ class Csv extends BaseWriter
 
     /**
      * Get whether BOM should be used.
+     *
+     * @return bool
      */
-    public function getUseBOM(): bool
+    public function getUseBOM()
     {
         return $this->useBOM;
     }
 
     /**
-     * Set whether BOM should be used, typically when non-ASCII characters are used.
+     * Set whether BOM should be used.
+     *
+     * @param bool $useBOM Use UTF-8 byte-order mark? Defaults to false
+     *
+     * @return $this
      */
-    public function setUseBOM(bool $useBOM): self
+    public function setUseBOM($useBOM)
     {
         $this->useBOM = $useBOM;
 
@@ -170,16 +234,22 @@ class Csv extends BaseWriter
 
     /**
      * Get whether a separator line should be included.
+     *
+     * @return bool
      */
-    public function getIncludeSeparatorLine(): bool
+    public function getIncludeSeparatorLine()
     {
         return $this->includeSeparatorLine;
     }
 
     /**
      * Set whether a separator line should be included as the first line of the file.
+     *
+     * @param bool $includeSeparatorLine Use separator line? Defaults to false
+     *
+     * @return $this
      */
-    public function setIncludeSeparatorLine(bool $includeSeparatorLine): self
+    public function setIncludeSeparatorLine($includeSeparatorLine)
     {
         $this->includeSeparatorLine = $includeSeparatorLine;
 
@@ -188,8 +258,10 @@ class Csv extends BaseWriter
 
     /**
      * Get whether the file should be saved with full Excel Compatibility.
+     *
+     * @return bool
      */
-    public function getExcelCompatibility(): bool
+    public function getExcelCompatibility()
     {
         return $this->excelCompatibility;
     }
@@ -199,39 +271,66 @@ class Csv extends BaseWriter
      *
      * @param bool $excelCompatibility Set the file to be written as a fully Excel compatible csv file
      *                                Note that this overrides other settings such as useBOM, enclosure and delimiter
+     *
+     * @return $this
      */
-    public function setExcelCompatibility(bool $excelCompatibility): self
+    public function setExcelCompatibility($excelCompatibility)
     {
         $this->excelCompatibility = $excelCompatibility;
 
         return $this;
     }
 
-    public function getSheetIndex(): int
+    /**
+     * Get sheet index.
+     *
+     * @return int
+     */
+    public function getSheetIndex()
     {
         return $this->sheetIndex;
     }
 
-    public function setSheetIndex(int $sheetIndex): self
+    /**
+     * Set sheet index.
+     *
+     * @param int $sheetIndex Sheet index
+     *
+     * @return $this
+     */
+    public function setSheetIndex($sheetIndex)
     {
         $this->sheetIndex = $sheetIndex;
 
         return $this;
     }
 
-    public function getOutputEncoding(): string
+    /**
+     * Get output encoding.
+     *
+     * @return string
+     */
+    public function getOutputEncoding()
     {
         return $this->outputEncoding;
     }
 
-    public function setOutputEncoding(string $outputEnconding): self
+    /**
+     * Set output encoding.
+     *
+     * @param string $outputEnconding Output encoding
+     *
+     * @return $this
+     */
+    public function setOutputEncoding($outputEnconding)
     {
         $this->outputEncoding = $outputEnconding;
 
         return $this;
     }
 
-    private bool $enclosureRequired = true;
+    /** @var bool */
+    private $enclosureRequired = true;
 
     public function setEnclosureRequired(bool $value): self
     {
@@ -248,9 +347,9 @@ class Csv extends BaseWriter
     /**
      * Convert boolean to TRUE/FALSE; otherwise return element cast to string.
      *
-     * @param null|bool|float|int|string|Stringable $element element to be converted
+     * @param mixed $element
      */
-    private static function elementToString(mixed $element): string
+    private static function elementToString($element): string
     {
         if (is_bool($element)) {
             return $element ? 'TRUE' : 'FALSE';
@@ -273,7 +372,6 @@ class Csv extends BaseWriter
         // Build the line
         $line = '';
 
-        /** @var null|bool|float|int|string|Stringable $element */
         foreach ($values as $element) {
             $element = self::elementToString($element);
             // Add delimiter

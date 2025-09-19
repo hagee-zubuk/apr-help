@@ -20,7 +20,7 @@ class Averages extends AggregateBase
      *
      * @return float|string (string if result is an error)
      */
-    public static function averageDeviations(mixed ...$args): string|float
+    public static function averageDeviations(...$args)
     {
         $aArgs = Functions::flattenArrayIndexed($args);
 
@@ -67,9 +67,9 @@ class Averages extends AggregateBase
      *
      * @param mixed ...$args Data values
      *
-     * @return float|int|string (string if result is an error)
+     * @return float|string (string if result is an error)
      */
-    public static function average(mixed ...$args): string|int|float
+    public static function average(...$args)
     {
         $returnValue = $aCount = 0;
 
@@ -106,26 +106,27 @@ class Averages extends AggregateBase
      *
      * @param mixed ...$args Data values
      *
-     * @return float|int|string (string if result is an error)
+     * @return float|string (string if result is an error)
      */
-    public static function averageA(mixed ...$args): string|int|float
+    public static function averageA(...$args)
     {
         $returnValue = null;
 
         $aCount = 0;
         // Loop through arguments
         foreach (Functions::flattenArrayIndexed($args) as $k => $arg) {
-            if (is_numeric($arg)) {
-                // do nothing
-            } elseif (is_bool($arg)) {
-                $arg = (int) $arg;
-            } elseif (!Functions::isMatrixValue($k)) {
-                $arg = 0;
+            if ((is_bool($arg)) && (!Functions::isMatrixValue($k))) {
             } else {
-                return ExcelError::VALUE();
+                if ((is_numeric($arg)) || (is_bool($arg)) || ((is_string($arg) && ($arg != '')))) {
+                    if (is_bool($arg)) {
+                        $arg = (int) $arg;
+                    } elseif (is_string($arg)) {
+                        $arg = 0;
+                    }
+                    $returnValue += $arg;
+                    ++$aCount;
+                }
             }
-            $returnValue += $arg;
-            ++$aCount;
         }
 
         if ($aCount > 0) {
@@ -147,7 +148,7 @@ class Averages extends AggregateBase
      *
      * @return float|string The result, or a string containing an error
      */
-    public static function median(mixed ...$args): float|string
+    public static function median(...$args)
     {
         $aArgs = Functions::flattenArray($args);
 
@@ -181,7 +182,7 @@ class Averages extends AggregateBase
      *
      * @return float|string The result, or a string containing an error
      */
-    public static function mode(mixed ...$args): float|string
+    public static function mode(...$args)
     {
         $returnValue = ExcelError::NA();
 
@@ -196,22 +197,22 @@ class Averages extends AggregateBase
         return $returnValue;
     }
 
-    protected static function filterArguments(array $args): array
+    protected static function filterArguments($args)
     {
         return array_filter(
             $args,
-            function ($value): bool {
+            function ($value) {
                 // Is it a numeric value?
-                return is_numeric($value) && (!is_string($value));
+                return  is_numeric($value) && (!is_string($value));
             }
         );
     }
 
-    /**
-     * Special variant of array_count_values that isn't limited to strings and integers,
-     * but can work with floating point numbers as values.
-     */
-    private static function modeCalc(array $data): float|string
+    //
+    //    Special variant of array_count_values that isn't limited to strings and integers,
+    //        but can work with floating point numbers as values
+    //
+    private static function modeCalc($data)
     {
         $frequencyArray = [];
         $index = 0;

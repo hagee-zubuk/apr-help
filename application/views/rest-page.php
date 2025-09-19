@@ -21,13 +21,13 @@ if (!is_int($logtime)) {
         <div class="columns">
             <div class="column is-4">
     <p style="font-size: 80%;">
-        Last apparent login: <?= date('m/d/y H:i', $logtime) ?> (GMT)
+        Last apparent login: <?= date('m/d/y H:i e', $logtime) ?> 
     </p>
     <!-- p>MIP Base URL: <b><?= $resturl?></b> </p -->
 
     <table id="tblButtons">
         <tr><td></td><td>
-    <button class="button opn is-danger is-light" id="btnLI" name="btnLI" data-label="Login">Re-Login</button>
+    <!-- button class="button opn is-danger is-light" id="btnLI" name="btnLI" data-label="Login">Re-Login</button -->
         </td></tr>
         <tr><td colspan="2"><p>Refresh:</p></td></tr>
         <tr><td>

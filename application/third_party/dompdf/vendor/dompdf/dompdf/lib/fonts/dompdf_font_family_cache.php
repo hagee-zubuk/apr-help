@@ -79,7 +79,7 @@ return array (
     'normal' => $fontDir . '/DejaVuSerif',
   ),
   'open sans condensed' => array(
-    '300' => $fontDir . '/open_sans_condensed_300_541c9d361a015465537e1b24d3ff0dc2',
+    '300' => $fontDir . '/open_sans_condensed_300_a337339ada77f7cccb839479ace75f73',
   ),
 );
 }; ?>

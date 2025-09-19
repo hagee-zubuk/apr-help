@@ -10,7 +10,10 @@ use PhpOffice\PhpSpreadsheet\Style\Style;
 
 class StyleMerger
 {
-    protected Style $baseStyle;
+    /**
+     * @var Style
+     */
+    protected $baseStyle;
 
     public function __construct(Style $baseStyle)
     {
@@ -70,9 +73,9 @@ class StyleMerger
             $baseFillStyle->setFillType($fillStyle->getFillType());
         }
 
-        //if ($fillStyle->getRotation() !== null) {
-        $baseFillStyle->setRotation($fillStyle->getRotation());
-        //}
+        if ($fillStyle->getRotation() !== null) {
+            $baseFillStyle->setRotation($fillStyle->getRotation());
+        }
 
         if ($fillStyle->getStartColor() !== null && $fillStyle->getStartColor()->getARGB() !== null) {
             $baseFillStyle->setStartColor($fillStyle->getStartColor());
@@ -104,9 +107,9 @@ class StyleMerger
 
     protected function mergeBorderStyle(Border $baseBorderStyle, Border $borderStyle): void
     {
-        //if ($borderStyle->getBorderStyle() !== null) {
-        $baseBorderStyle->setBorderStyle($borderStyle->getBorderStyle());
-        //}
+        if ($borderStyle->getBorderStyle() !== null) {
+            $baseBorderStyle->setBorderStyle($borderStyle->getBorderStyle());
+        }
 
         if ($borderStyle->getColor() !== null && $borderStyle->getColor()->getARGB() !== null) {
             $baseBorderStyle->setColor($borderStyle->getColor());

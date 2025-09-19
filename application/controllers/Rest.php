@@ -76,13 +76,17 @@ class Rest extends CI_Controller {
     }
 
     public function index() {
-        if(file_exists($this->loginfile)) {
+/*        if(file_exists($this->loginfile)) {
             $dtFn = filectime($this->loginfile); // date("F d Y H:i:s.", filectime($this->loginfile) );
         } else {
             $dtFn = '&lt; none &gt;';
         }
+*/
+        $this->load->model('Login_model');
+        $logrecs = $this->Login_model->getLoginAccessToken();
+        $dtFn = strtotime($logrecs[1]['ts']);
         
-        $dat = array('logfile' => $this->loginfile
+        $dat = array('logfile' => 'DB'
                     , 'resturl' => $this->rest_url
                     , 'logtime' => $dtFn
                 );
@@ -90,11 +94,12 @@ class Rest extends CI_Controller {
     }
 
     public function login() {
+        $this->load->library('Guzzle');
         //if (strlen($this->rest_url) > 7) {
         $this->logout();
         //}
         
-        $this->load->library('Guzzle');
+        
         $cli = new GuzzleHttp\Client( [ GuzzleHttp\RequestOptions::VERIFY => FALSE ] );
         // [ GuzzleHttp\RequestOptions::VERIFY => \Composer\CaBundle\CaBundle::getSystemCaRootBundlePath() ] );
 
@@ -154,6 +159,69 @@ class Rest extends CI_Controller {
             echo date('Y-m-d H:i:s');
         }
         // echo PHP_EOL .'</pre>';
+    }
+
+
+    public function raw__logout($accesstoken = '') {
+        $accesstoken = trim($accesstoken);
+        if (strlen($accesstoken) < 10) return;
+        
+        $this->load->library('Guzzle');
+        $cli = new GuzzleHttp\Client( [ GuzzleHttp\RequestOptions::VERIFY => \Composer\CaBundle\CaBundle::getSystemCaRootBundlePath() ] );
+        //$url = 'https://login.mip.com/api/v1/sso/mipadv/logout';
+        $url = $this->rest_url .'api/security/logout';
+        $bod = '';
+        echo '<pre>';
+        echo PHP_EOL .'URL: '. $url; // 200
+        try {
+            $response = $cli->request( 'POST'
+                    , $url
+                    , [
+                            'allow_redirects' => true
+                            , 'headers' => [ 
+                                'Authorization-Token' => $accesstoken
+                                ]
+                        ]
+                    );
+            $sta = $response->getStatusCode();
+            echo PHP_EOL .'Statuscode: '. $sta; // 200
+            echo PHP_EOL .'Reason: '. $response->getReasonPhrase(); // OK
+            $json = $response->getBody();
+            echo PHP_EOL .'Response: '. PHP_EOL . $json . PHP_EOL . PHP_EOL;
+            $aryR = json_decode($json);
+            echo PHP_EOL;
+            var_dump($aryR);
+        } catch (GuzzleHttp\Exception\BadResponseException $e) {
+            #guzzle repose for future use
+            $response = $e->getResponse();
+            $responseBodyAsString = $response->getBody()->getContents();
+            echo '*** ERROR!'. PHP_EOL . PHP_EOL . PHP_EOL . $responseBodyAsString . PHP_EOL . PHP_EOL;
+            var_dump($response);
+        } catch(Exception $e) {
+            echo 'ERROR!'. PHP_EOL;
+            var_dump($e);
+        } finally {
+            echo PHP_EOL . PHP_EOL .'*** LOGOUT: '. date('Y-m-d H:i:s') . PHP_EOL;
+        }
+        ECHO '</pre>';
+        return;
+    }
+
+
+    public function lastlogins($qty = 5) {
+        $this->load->model('Login_model');
+        $logrecs = $this->Login_model->getLoginAccessToken();
+        if ($logrecs !== FALSE) {
+            $cnt = 0;
+            foreach($logrecs as $l) {
+                $guid = $l['guid'];
+                if ($l['login_statuscode'] == 200) {
+                    echo date('m/d H:i', strtotime($l['ts'])) . '-- '. $l['AccessToken'] .'<br />'. PHP_EOL;            
+                }
+                $cnt++;
+                if ($cnt >= $qty) break;
+            }
+        }
     }
 
 
@@ -244,6 +312,7 @@ class Rest extends CI_Controller {
 
 
     public function getVendors() {
+        echo 'REST URL: '. $this->rest_url .'<br />'. PHP_EOL . PHP_EOL;
         if (strlen($this->rest_url) < 7) {
             // needs login!
             $this->login();
@@ -361,7 +430,7 @@ class Rest extends CI_Controller {
         echo date('Y-m-d H:i:s');
 //        echo PHP_EOL .'</pre>';
 
-        $this->logout();
+//        $this->logout();
     }
 
 
@@ -489,7 +558,7 @@ class Rest extends CI_Controller {
             ob_flush();
         }
 
-        $this->logout();
+//        $this->logout();
     }
 
 
@@ -610,7 +679,7 @@ class Rest extends CI_Controller {
         echo 'mip_tblAcctCode_xx refresh done :: '. date('Y-m-d H:i:s');
 //        echo PHP_EOL .'</pre>';
 
-        $this->logout();
+//        $this->logout();
     }
 
 
@@ -715,7 +784,7 @@ class Rest extends CI_Controller {
         echo PHP_EOL .'mip_tblAcctCode_'. $seg .' refresh done :: '. date('Y-m-d H:i:s');
         // echo PHP_EOL .'</pre>';
 
-        $this->logout();
+//        $this->logout();
     }
 
 }

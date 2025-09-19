@@ -21,7 +21,7 @@ class Trend
      *
      * @var string[]
      */
-    private static array $trendTypes = [
+    private static $trendTypes = [
         self::TREND_LINEAR,
         self::TREND_LOGARITHMIC,
         self::TREND_EXPONENTIAL,
@@ -33,7 +33,7 @@ class Trend
      *
      * @var string[]
      */
-    private static array $trendTypePolynomialOrders = [
+    private static $trendTypePolynomialOrders = [
         self::TREND_POLYNOMIAL_2,
         self::TREND_POLYNOMIAL_3,
         self::TREND_POLYNOMIAL_4,
@@ -46,9 +46,9 @@ class Trend
      *
      * @var BestFit[]
      */
-    private static array $trendCache = [];
+    private static $trendCache = [];
 
-    public static function calculate(string $trendType = self::TREND_BEST_FIT, array $yValues = [], array $xValues = [], bool $const = true): mixed
+    public static function calculate($trendType = self::TREND_BEST_FIT, $yValues = [], $xValues = [], $const = true)
     {
         //    Calculate number of points in each dataset
         $nY = count($yValues);
@@ -72,6 +72,7 @@ class Trend
             case self::TREND_POWER:
                 if (!isset(self::$trendCache[$key])) {
                     $className = '\PhpOffice\PhpSpreadsheet\Shared\Trend\\' . $trendType . 'BestFit';
+                    // @phpstan-ignore-next-line
                     self::$trendCache[$key] = new $className($yValues, $xValues, $const);
                 }
 
@@ -95,7 +96,6 @@ class Trend
                 $bestFitValue = [];
                 foreach (self::$trendTypes as $trendMethod) {
                     $className = '\PhpOffice\PhpSpreadsheet\Shared\Trend\\' . $trendType . 'BestFit';
-                    //* @phpstan-ignore-next-line
                     $bestFit[$trendMethod] = new $className($yValues, $xValues, $const);
                     $bestFitValue[$trendMethod] = $bestFit[$trendMethod]->getGoodnessOfFit();
                 }

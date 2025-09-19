@@ -3,32 +3,32 @@
 namespace PhpOffice\PhpSpreadsheet\Cell;
 
 use PhpOffice\PhpSpreadsheet\Calculation\Calculation;
-use PhpOffice\PhpSpreadsheet\Calculation\Exception as CalculationException;
 use PhpOffice\PhpSpreadsheet\Calculation\Information\ExcelError;
 use PhpOffice\PhpSpreadsheet\Collection\Cells;
-use PhpOffice\PhpSpreadsheet\Exception as SpreadsheetException;
+use PhpOffice\PhpSpreadsheet\Exception;
 use PhpOffice\PhpSpreadsheet\RichText\RichText;
 use PhpOffice\PhpSpreadsheet\Shared\Date as SharedDate;
-use PhpOffice\PhpSpreadsheet\Shared\StringHelper;
 use PhpOffice\PhpSpreadsheet\Style\ConditionalFormatting\CellStyleAssessor;
 use PhpOffice\PhpSpreadsheet\Style\NumberFormat;
-use PhpOffice\PhpSpreadsheet\Style\Protection;
 use PhpOffice\PhpSpreadsheet\Style\Style;
-use PhpOffice\PhpSpreadsheet\Worksheet\Table;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
-use Stringable;
+use Throwable;
 
-class Cell implements Stringable
+class Cell
 {
     /**
      * Value binder to use.
+     *
+     * @var IValueBinder
      */
-    private static ?IValueBinder $valueBinder = null;
+    private static $valueBinder;
 
     /**
      * Value of the cell.
+     *
+     * @var mixed
      */
-    private mixed $value;
+    private $value;
 
     /**
      *    Calculated value of the cell (used for caching)
@@ -44,46 +44,45 @@ class Cell implements Stringable
 
     /**
      * Type of the cell data.
+     *
+     * @var string
      */
-    private string $dataType;
+    private $dataType;
 
     /**
      * The collection of cells that this cell belongs to (i.e. The Cell Collection for the parent Worksheet).
      *
-     * @var ?Cells
+     * @var Cells
      */
-    private ?Cells $parent;
+    private $parent;
 
     /**
      * Index to the cellXf reference for the styling of this cell.
+     *
+     * @var int
      */
-    private int $xfIndex = 0;
+    private $xfIndex = 0;
 
     /**
      * Attributes of the formula.
      */
-    private ?array $formulaAttributes = null;
-
-    private IgnoredErrors $ignoredErrors;
+    private $formulaAttributes;
 
     /**
      * Update the cell into the cell collection.
      *
-     * @throws SpreadsheetException
+     * @return $this
      */
     public function updateInCollection(): self
     {
-        $parent = $this->parent;
-        if ($parent === null) {
-            throw new SpreadsheetException('Cannot update when cell is not bound to a worksheet');
-        }
-        $parent->update($this);
+        $this->parent->update($this);
 
         return $this;
     }
 
     public function detach(): void
     {
+        // @phpstan-ignore-next-line
         $this->parent = null;
     }
 
@@ -95,9 +94,9 @@ class Cell implements Stringable
     /**
      * Create a new Cell.
      *
-     * @throws SpreadsheetException
+     * @param mixed $value
      */
-    public function __construct(mixed $value, ?string $dataType, Worksheet $worksheet)
+    public function __construct($value, ?string $dataType, Worksheet $worksheet)
     {
         // Initialise cell value
         $this->value = $value;
@@ -112,56 +111,44 @@ class Cell implements Stringable
             }
             $this->dataType = $dataType;
         } elseif (self::getValueBinder()->bindValue($this, $value) === false) {
-            throw new SpreadsheetException('Value could not be bound to cell.');
+            throw new Exception('Value could not be bound to cell.');
         }
-        $this->ignoredErrors = new IgnoredErrors();
     }
 
     /**
      * Get cell coordinate column.
      *
-     * @throws SpreadsheetException
+     * @return string
      */
-    public function getColumn(): string
+    public function getColumn()
     {
-        $parent = $this->parent;
-        if ($parent === null) {
-            throw new SpreadsheetException('Cannot get column when cell is not bound to a worksheet');
-        }
-
-        return $parent->getCurrentColumn();
+        return $this->parent->getCurrentColumn();
     }
 
     /**
      * Get cell coordinate row.
      *
-     * @throws SpreadsheetException
+     * @return int
      */
-    public function getRow(): int
+    public function getRow()
     {
-        $parent = $this->parent;
-        if ($parent === null) {
-            throw new SpreadsheetException('Cannot get row when cell is not bound to a worksheet');
-        }
-
-        return $parent->getCurrentRow();
+        return $this->parent->getCurrentRow();
     }
 
     /**
      * Get cell coordinate.
      *
-     * @throws SpreadsheetException
+     * @return string
      */
-    public function getCoordinate(): string
+    public function getCoordinate()
     {
-        $parent = $this->parent;
-        if ($parent !== null) {
-            $coordinate = $parent->getCurrentCoordinate();
-        } else {
+        try {
+            $coordinate = $this->parent->getCurrentCoordinate();
+        } catch (Throwable $e) {
             $coordinate = null;
         }
         if ($coordinate === null) {
-            throw new SpreadsheetException('Coordinate no longer exists');
+            throw new Exception('Coordinate no longer exists');
         }
 
         return $coordinate;
@@ -169,17 +156,12 @@ class Cell implements Stringable
 
     /**
      * Get cell value.
+     *
+     * @return mixed
      */
-    public function getValue(): mixed
+    public function getValue()
     {
         return $this->value;
-    }
-
-    public function getValueString(): string
-    {
-        $value = $this->value;
-
-        return ($value === '' || is_scalar($value) || $value instanceof Stringable) ? "$value" : '';
     }
 
     /**
@@ -189,27 +171,9 @@ class Cell implements Stringable
     {
         return (string) NumberFormat::toFormattedString(
             $this->getCalculatedValue(),
-            (string) $this->getStyle()->getNumberFormat()->getFormatCode(true)
+            $this->getStyle()
+                ->getNumberFormat()->getFormatCode()
         );
-    }
-
-    protected static function updateIfCellIsTableHeader(?Worksheet $workSheet, self $cell, mixed $oldValue, mixed $newValue): void
-    {
-        if (StringHelper::strToLower($oldValue ?? '') === StringHelper::strToLower($newValue ?? '') || $workSheet === null) {
-            return;
-        }
-
-        foreach ($workSheet->getTableCollection() as $table) {
-            /** @var Table $table */
-            if ($cell->isInRange($table->getRange())) {
-                $rangeRowsColumns = Coordinate::getRangeBoundaries($table->getRange());
-                if ($cell->getRow() === (int) $rangeRowsColumns[0][1]) {
-                    Table\Column::updateStructuredReferences($workSheet, $oldValue, $newValue);
-                }
-
-                return;
-            }
-        }
     }
 
     /**
@@ -218,15 +182,13 @@ class Cell implements Stringable
      *    Sets the value for a cell, automatically determining the datatype using the value binder
      *
      * @param mixed $value Value
-     * @param null|IValueBinder $binder Value Binder to override the currently set Value Binder
      *
-     * @throws SpreadsheetException
+     * @return $this
      */
-    public function setValue(mixed $value, ?IValueBinder $binder = null): self
+    public function setValue($value): self
     {
-        $binder ??= self::getValueBinder();
-        if (!$binder->bindValue($this, $value)) {
-            throw new SpreadsheetException('Value could not be bound to cell.');
+        if (!self::getValueBinder()->bindValue($this, $value)) {
+            throw new Exception('Value could not be bound to cell.');
         }
 
         return $this;
@@ -243,12 +205,10 @@ class Cell implements Stringable
      *       If you do mismatch value and datatype, then the value you enter may be changed to match the datatype
      *          that you specify.
      *
-     * @throws SpreadsheetException
+     * @return Cell
      */
-    public function setValueExplicit(mixed $value, string $dataType = DataType::TYPE_STRING): self
+    public function setValueExplicit($value, $dataType)
     {
-        $oldValue = $this->value;
-
         // set the value according to data type
         switch ($dataType) {
             case DataType::TYPE_NULL:
@@ -267,7 +227,7 @@ class Cell implements Stringable
                 break;
             case DataType::TYPE_NUMERIC:
                 if (is_string($value) && !is_numeric($value)) {
-                    throw new SpreadsheetException('Invalid numeric value for datatype Numeric');
+                    throw new Exception('Invalid numeric value for datatype Numeric');
                 }
                 $this->value = 0 + $value;
 
@@ -290,67 +250,15 @@ class Cell implements Stringable
 
                 break;
             default:
-                throw new SpreadsheetException('Invalid datatype: ' . $dataType);
+                throw new Exception('Invalid datatype: ' . $dataType);
+
+                break;
         }
 
         // set the datatype
         $this->dataType = $dataType;
 
-        $this->updateInCollection();
-        $cellCoordinate = $this->getCoordinate();
-        self::updateIfCellIsTableHeader($this->getParent()?->getParent(), $this, $oldValue, $value);
-
-        return $this->getParent()?->get($cellCoordinate) ?? $this;
-    }
-
-    public const CALCULATE_DATE_TIME_ASIS = 0;
-    public const CALCULATE_DATE_TIME_FLOAT = 1;
-    public const CALCULATE_TIME_FLOAT = 2;
-
-    private static int $calculateDateTimeType = self::CALCULATE_DATE_TIME_ASIS;
-
-    public static function getCalculateDateTimeType(): int
-    {
-        return self::$calculateDateTimeType;
-    }
-
-    /** @throws CalculationException */
-    public static function setCalculateDateTimeType(int $calculateDateTimeType): void
-    {
-        self::$calculateDateTimeType = match ($calculateDateTimeType) {
-            self::CALCULATE_DATE_TIME_ASIS, self::CALCULATE_DATE_TIME_FLOAT, self::CALCULATE_TIME_FLOAT => $calculateDateTimeType,
-            default => throw new CalculationException("Invalid value $calculateDateTimeType for calculated date time type"),
-        };
-    }
-
-    /**
-     * Convert date, time, or datetime from int to float if desired.
-     */
-    private function convertDateTimeInt(mixed $result): mixed
-    {
-        if (is_int($result)) {
-            if (self::$calculateDateTimeType === self::CALCULATE_TIME_FLOAT) {
-                if (SharedDate::isDateTime($this, $result, false)) {
-                    $result = (float) $result;
-                }
-            } elseif (self::$calculateDateTimeType === self::CALCULATE_DATE_TIME_FLOAT) {
-                if (SharedDate::isDateTime($this, $result, true)) {
-                    $result = (float) $result;
-                }
-            }
-        }
-
-        return $result;
-    }
-
-    /**
-     * Get calculated cell value converted to string.
-     */
-    public function getCalculatedValueString(): string
-    {
-        $value = $this->getCalculatedValue();
-
-        return ($value === '' || is_scalar($value) || $value instanceof Stringable) ? "$value" : '';
+        return $this->updateInCollection();
     }
 
     /**
@@ -358,37 +266,34 @@ class Cell implements Stringable
      *
      * @param bool $resetLog Whether the calculation engine logger should be reset or not
      *
-     * @throws CalculationException
+     * @return mixed
      */
-    public function getCalculatedValue(bool $resetLog = true): mixed
+    public function getCalculatedValue(bool $resetLog = true)
     {
         if ($this->dataType === DataType::TYPE_FORMULA) {
             try {
-                $index = $this->getWorksheet()->getParentOrThrow()->getActiveSheetIndex();
+                $index = $this->getWorksheet()->getParent()->getActiveSheetIndex();
                 $selected = $this->getWorksheet()->getSelectedCells();
                 $result = Calculation::getInstance(
                     $this->getWorksheet()->getParent()
                 )->calculateCellValue($this, $resetLog);
-                $result = $this->convertDateTimeInt($result);
                 $this->getWorksheet()->setSelectedCells($selected);
-                $this->getWorksheet()->getParentOrThrow()->setActiveSheetIndex($index);
+                $this->getWorksheet()->getParent()->setActiveSheetIndex($index);
                 //    We don't yet handle array returns
                 if (is_array($result)) {
                     while (is_array($result)) {
                         $result = array_shift($result);
                     }
                 }
-            } catch (SpreadsheetException $ex) {
+            } catch (Exception $ex) {
                 if (($ex->getMessage() === 'Unable to access External Workbook') && ($this->calculatedValue !== null)) {
                     return $this->calculatedValue; // Fallback for calculations referencing external files.
                 } elseif (preg_match('/[Uu]ndefined (name|offset: 2|array key 2)/', $ex->getMessage()) === 1) {
                     return ExcelError::NAME();
                 }
 
-                throw new CalculationException(
-                    $this->getWorksheet()->getTitle() . '!' . $this->getCoordinate() . ' -> ' . $ex->getMessage(),
-                    $ex->getCode(),
-                    $ex
+                throw new \PhpOffice\PhpSpreadsheet\Calculation\Exception(
+                    $this->getWorksheet()->getTitle() . '!' . $this->getCoordinate() . ' -> ' . $ex->getMessage()
                 );
             }
 
@@ -401,7 +306,7 @@ class Cell implements Stringable
             return $this->value->getPlainText();
         }
 
-        return $this->convertDateTimeInt($this->value);
+        return $this->value;
     }
 
     /**
@@ -409,10 +314,10 @@ class Cell implements Stringable
      *
      * @param mixed $originalValue Value
      */
-    public function setCalculatedValue(mixed $originalValue, bool $tryNumeric = true): self
+    public function setCalculatedValue($originalValue): self
     {
         if ($originalValue !== null) {
-            $this->calculatedValue = ($tryNumeric && is_numeric($originalValue)) ? (0 + $originalValue) : $originalValue;
+            $this->calculatedValue = (is_numeric($originalValue)) ? (float) $originalValue : $originalValue;
         }
 
         return $this->updateInCollection();
@@ -425,8 +330,10 @@ class Cell implements Stringable
      *    Note that this value is not guaranteed to reflect the actual calculated value because it is
      *        possible that auto-calculation was disabled in the original spreadsheet, and underlying data
      *        values used by the formula have changed since it was last calculated.
+     *
+     * @return mixed
      */
-    public function getOldCalculatedValue(): mixed
+    public function getOldCalculatedValue()
     {
         return $this->calculatedValue;
     }
@@ -444,11 +351,14 @@ class Cell implements Stringable
      *
      * @param string $dataType see DataType::TYPE_*
      */
-    public function setDataType(string $dataType): self
+    public function setDataType($dataType): self
     {
-        $this->setValueExplicit($this->value, $dataType);
+        if ($dataType == DataType::TYPE_STRING2) {
+            $dataType = DataType::TYPE_STRING;
+        }
+        $this->dataType = $dataType;
 
-        return $this;
+        return $this->updateInCollection();
     }
 
     /**
@@ -461,13 +371,11 @@ class Cell implements Stringable
 
     /**
      *    Does this cell contain Data validation rules?
-     *
-     * @throws SpreadsheetException
      */
     public function hasDataValidation(): bool
     {
         if (!isset($this->parent)) {
-            throw new SpreadsheetException('Cannot check for data validation when cell is not bound to a worksheet');
+            throw new Exception('Cannot check for data validation when cell is not bound to a worksheet');
         }
 
         return $this->getWorksheet()->dataValidationExists($this->getCoordinate());
@@ -475,13 +383,11 @@ class Cell implements Stringable
 
     /**
      * Get Data validation rules.
-     *
-     * @throws SpreadsheetException
      */
     public function getDataValidation(): DataValidation
     {
         if (!isset($this->parent)) {
-            throw new SpreadsheetException('Cannot get data validation for cell that is not bound to a worksheet');
+            throw new Exception('Cannot get data validation for cell that is not bound to a worksheet');
         }
 
         return $this->getWorksheet()->getDataValidation($this->getCoordinate());
@@ -489,13 +395,11 @@ class Cell implements Stringable
 
     /**
      * Set Data validation rules.
-     *
-     * @throws SpreadsheetException
      */
     public function setDataValidation(?DataValidation $dataValidation = null): self
     {
         if (!isset($this->parent)) {
-            throw new SpreadsheetException('Cannot set data validation for cell that is not bound to a worksheet');
+            throw new Exception('Cannot set data validation for cell that is not bound to a worksheet');
         }
 
         $this->getWorksheet()->setDataValidation($this->getCoordinate(), $dataValidation);
@@ -515,13 +419,11 @@ class Cell implements Stringable
 
     /**
      * Does this cell contain a Hyperlink?
-     *
-     * @throws SpreadsheetException
      */
     public function hasHyperlink(): bool
     {
         if (!isset($this->parent)) {
-            throw new SpreadsheetException('Cannot check for hyperlink when cell is not bound to a worksheet');
+            throw new Exception('Cannot check for hyperlink when cell is not bound to a worksheet');
         }
 
         return $this->getWorksheet()->hyperlinkExists($this->getCoordinate());
@@ -529,13 +431,11 @@ class Cell implements Stringable
 
     /**
      * Get Hyperlink.
-     *
-     * @throws SpreadsheetException
      */
     public function getHyperlink(): Hyperlink
     {
         if (!isset($this->parent)) {
-            throw new SpreadsheetException('Cannot get hyperlink for cell that is not bound to a worksheet');
+            throw new Exception('Cannot get hyperlink for cell that is not bound to a worksheet');
         }
 
         return $this->getWorksheet()->getHyperlink($this->getCoordinate());
@@ -543,13 +443,11 @@ class Cell implements Stringable
 
     /**
      * Set Hyperlink.
-     *
-     * @throws SpreadsheetException
      */
     public function setHyperlink(?Hyperlink $hyperlink = null): self
     {
         if (!isset($this->parent)) {
-            throw new SpreadsheetException('Cannot set hyperlink for cell that is not bound to a worksheet');
+            throw new Exception('Cannot set hyperlink for cell that is not bound to a worksheet');
         }
 
         $this->getWorksheet()->setHyperlink($this->getCoordinate(), $hyperlink);
@@ -559,40 +457,27 @@ class Cell implements Stringable
 
     /**
      * Get cell collection.
+     *
+     * @return Cells
      */
-    public function getParent(): ?Cells
+    public function getParent()
     {
         return $this->parent;
     }
 
     /**
      * Get parent worksheet.
-     *
-     * @throws SpreadsheetException
      */
     public function getWorksheet(): Worksheet
     {
-        $parent = $this->parent;
-        if ($parent !== null) {
-            $worksheet = $parent->getParent();
-        } else {
+        try {
+            $worksheet = $this->parent->getParent();
+        } catch (Throwable $e) {
             $worksheet = null;
         }
 
         if ($worksheet === null) {
-            throw new SpreadsheetException('Worksheet no longer exists');
-        }
-
-        return $worksheet;
-    }
-
-    public function getWorksheetOrNull(): ?Worksheet
-    {
-        $parent = $this->parent;
-        if ($parent !== null) {
-            $worksheet = $parent->getParent();
-        } else {
-            $worksheet = null;
+            throw new Exception('Worksheet no longer exists');
         }
 
         return $worksheet;
@@ -687,8 +572,8 @@ class Cell implements Stringable
         $myRow = $this->getRow();
 
         // Verify if cell is in range
-        return ($rangeStart[0] <= $myColumn) && ($rangeEnd[0] >= $myColumn)
-            && ($rangeStart[1] <= $myRow) && ($rangeEnd[1] >= $myRow);
+        return ($rangeStart[0] <= $myColumn) && ($rangeEnd[0] >= $myColumn) &&
+                ($rangeStart[1] <= $myRow) && ($rangeEnd[1] >= $myRow);
     }
 
     /**
@@ -765,53 +650,35 @@ class Cell implements Stringable
         return $this->updateInCollection();
     }
 
-    public function setFormulaAttributes(?array $attributes): self
+    /**
+     * Set the formula attributes.
+     *
+     * @param mixed $attributes
+     *
+     * @return $this
+     */
+    public function setFormulaAttributes($attributes): self
     {
         $this->formulaAttributes = $attributes;
 
         return $this;
     }
 
-    public function getFormulaAttributes(): ?array
+    /**
+     * Get the formula attributes.
+     */
+    public function getFormulaAttributes()
     {
         return $this->formulaAttributes;
     }
 
     /**
      * Convert to string.
+     *
+     * @return string
      */
-    public function __toString(): string
+    public function __toString()
     {
         return (string) $this->getValue();
-    }
-
-    public function getIgnoredErrors(): IgnoredErrors
-    {
-        return $this->ignoredErrors;
-    }
-
-    public function isLocked(): bool
-    {
-        $protected = $this->parent?->getParent()?->getProtection()?->getSheet();
-        if ($protected !== true) {
-            return false;
-        }
-        $locked = $this->getStyle()->getProtection()->getLocked();
-
-        return $locked !== Protection::PROTECTION_UNPROTECTED;
-    }
-
-    public function isHiddenOnFormulaBar(): bool
-    {
-        if ($this->getDataType() !== DataType::TYPE_FORMULA) {
-            return false;
-        }
-        $protected = $this->parent?->getParent()?->getProtection()?->getSheet();
-        if ($protected !== true) {
-            return false;
-        }
-        $hidden = $this->getStyle()->getProtection()->getHidden();
-
-        return $hidden !== Protection::PROTECTION_UNPROTECTED;
     }
 }

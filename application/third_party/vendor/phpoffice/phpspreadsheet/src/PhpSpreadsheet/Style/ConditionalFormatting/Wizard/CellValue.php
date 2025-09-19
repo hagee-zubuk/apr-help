@@ -36,14 +36,16 @@ class CellValue extends WizardAbstract implements WizardInterface
 
     protected const RANGE_OPERATORS = CellMatcher::COMPARISON_RANGE_OPERATORS;
 
-    protected string $operator = Conditional::OPERATOR_EQUAL;
+    /** @var string */
+    protected $operator = Conditional::OPERATOR_EQUAL;
 
-    protected array $operand = [0];
+    /** @var array */
+    protected $operand = [0];
 
     /**
      * @var string[]
      */
-    protected array $operandValueType = [];
+    protected $operandValueType = [];
 
     public function __construct(string $cellRange)
     {
@@ -59,7 +61,10 @@ class CellValue extends WizardAbstract implements WizardInterface
         $this->operator = $operator;
     }
 
-    protected function operand(int $index, mixed $operand, string $operandValueType = Wizard::VALUE_TYPE_LITERAL): void
+    /**
+     * @param mixed $operand
+     */
+    protected function operand(int $index, $operand, string $operandValueType = Wizard::VALUE_TYPE_LITERAL): void
     {
         if (is_string($operand)) {
             $operand = $this->validateOperand($operand, $operandValueType);
@@ -69,7 +74,12 @@ class CellValue extends WizardAbstract implements WizardInterface
         $this->operandValueType[$index] = $operandValueType;
     }
 
-    protected function wrapValue(mixed $value, string $operandValueType): float|int|string
+    /**
+     * @param mixed $value
+     *
+     * @return float|int|string
+     */
+    protected function wrapValue($value, string $operandValueType)
     {
         if (!is_numeric($value) && !is_bool($value) && null !== $value) {
             if ($operandValueType === Wizard::VALUE_TYPE_LITERAL) {
@@ -107,7 +117,7 @@ class CellValue extends WizardAbstract implements WizardInterface
 
     protected static function unwrapString(string $condition): string
     {
-        if ((str_starts_with($condition, '"')) && (str_starts_with(strrev($condition), '"'))) {
+        if ((strpos($condition, '"') === 0) && (strpos(strrev($condition), '"') === 0)) {
             $condition = substr($condition, 1, -1);
         }
 
@@ -130,14 +140,14 @@ class CellValue extends WizardAbstract implements WizardInterface
             // Best-guess to try and identify if the text is a string literal, a cell reference or a formula?
             $operandValueType = Wizard::VALUE_TYPE_LITERAL;
             if (is_string($condition)) {
-                if (Calculation::keyInExcelConstants($condition)) {
-                    $condition = Calculation::getExcelConstants($condition);
+                if (array_key_exists($condition, Calculation::$excelConstants)) {
+                    $condition = Calculation::$excelConstants[$condition];
                 } elseif (preg_match('/^' . Calculation::CALCULATION_REGEXP_CELLREF_RELATIVE . '$/i', $condition)) {
                     $operandValueType = Wizard::VALUE_TYPE_CELL;
                     $condition = self::reverseAdjustCellRef($condition, $cellRange);
                 } elseif (
-                    preg_match('/\(\)/', $condition)
-                    || preg_match('/' . Calculation::CALCULATION_REGEXP_CELLREF_RELATIVE . '/i', $condition)
+                    preg_match('/\(\)/', $condition) ||
+                    preg_match('/' . Calculation::CALCULATION_REGEXP_CELLREF_RELATIVE . '/i', $condition)
                 ) {
                     $operandValueType = Wizard::VALUE_TYPE_FORMULA;
                     $condition = self::reverseAdjustCellRef($condition, $cellRange);
@@ -152,9 +162,10 @@ class CellValue extends WizardAbstract implements WizardInterface
     }
 
     /**
+     * @param string $methodName
      * @param mixed[] $arguments
      */
-    public function __call(string $methodName, array $arguments): self
+    public function __call($methodName, $arguments): self
     {
         if (!isset(self::MAGIC_OPERATIONS[$methodName]) && $methodName !== 'and') {
             throw new Exception('Invalid Operator for Cell Value CF Rule Wizard');
@@ -171,12 +182,7 @@ class CellValue extends WizardAbstract implements WizardInterface
         }
 
         $this->operator(self::MAGIC_OPERATIONS[$methodName]);
-        //$this->operand(0, ...$arguments);
-        if (count($arguments) < 2) {
-            $this->operand(0, $arguments[0]);
-        } else {
-            $this->operand(0, $arguments[0], $arguments[1]);
-        }
+        $this->operand(0, ...$arguments);
 
         return $this;
     }

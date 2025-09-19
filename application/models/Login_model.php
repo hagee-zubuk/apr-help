@@ -52,7 +52,7 @@ GREENEGGSANDSPAMISGOOD;
 
 		if (isset($ary['guid'])) unset($ary['guid']);
 
-		
+		$this->db->where('guid', $guid);
 		$ret =  $this->db->update('mip_Logins', $ary);
 		$this->errMesg = 'ok '. $ret;
 
