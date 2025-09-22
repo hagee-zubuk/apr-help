@@ -522,5 +522,5 @@ $config['rewrite_short_tags'] = FALSE;
 */
 $config['proxy_ips'] = '';
 
-$config['loginfile'] = "C:\\Work\\ascentria\\helper\\application\\tmp\\rest.json";
+$config['loginfile'] = "C:\\Work\\helpers\\application\\tmp\\rest.json";
 $config['rest_auth'] = "C:\\Work\\ascentria\\helper\\application\\tmp\\auth.json";

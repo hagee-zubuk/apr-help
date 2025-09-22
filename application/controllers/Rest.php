@@ -5,6 +5,9 @@ class Rest extends CI_Controller {
     public $loginfile;
     public $rest_url;
     public $acc_tokn;
+    public $login_dt;
+
+
 
     public function __construct() {
         parent::__construct();
@@ -23,6 +26,7 @@ class Rest extends CI_Controller {
 */
         }
     }
+
 
     private function mkGUID ($trim = true) {
         // Windows
@@ -57,7 +61,26 @@ class Rest extends CI_Controller {
         return $guidv4;
     }
 
+
     private function loadlogindata() {
+        $dtOld = strtotime('-1 week');
+        $this->load->model('Login_model');
+        $logrecs = $this->Login_model->getLoginAccessToken();
+        if ($logrecs === FALSE) {
+            return FALSE;
+        }
+        $latest = $logrecs[0];
+        $dtFn = strtotime($latest['ts']);
+        if ($dtFn < $dtOld) {
+            return FALSE;
+        } else {
+            $this->rest_url = $latest['RestApiUrl'];
+            $this->acc_tokn = $latest['AccessToken'];
+            $this->login_dt = $dtFn;
+        }
+        return TRUE;
+
+        /*
         if(file_exists($this->loginfile)) {
             $json = file_get_contents($this->loginfile, FALSE);
             if(is_null($json)) return FALSE;
@@ -73,7 +96,20 @@ class Rest extends CI_Controller {
         } else {
             return FALSE;
         }
+        */
     }
+
+
+    public function getLoginData() {
+        $this->load->model('Login_model');
+        $logrecs = $this->Login_model->getLoginAccessToken();
+        $dtFn = strtotime($logrecs[0]['ts']);
+        echo '<pre>';
+        echo 'Timestamp: '. date('Y-m-d H:i:s e', $dtFn) . PHP_EOL. PHP_EOL;
+        var_dump($logrecs[0]);
+        echo PHP_EOL .'</pre>';
+    }
+
 
     public function index() {
 /*        if(file_exists($this->loginfile)) {
@@ -88,17 +124,18 @@ class Rest extends CI_Controller {
         
         $dat = array('logfile' => 'DB'
                     , 'resturl' => $this->rest_url
-                    , 'logtime' => $dtFn
+                    , 'acctokn' => $this->acc_tokn
+                    , 'logtime' => $this->login_dt
                 );
         $this->load->view('rest-page.php', $dat);
     }
+
 
     public function login() {
         $this->load->library('Guzzle');
         //if (strlen($this->rest_url) > 7) {
         $this->logout();
         //}
-        
         
         $cli = new GuzzleHttp\Client( [ GuzzleHttp\RequestOptions::VERIFY => FALSE ] );
         // [ GuzzleHttp\RequestOptions::VERIFY => \Composer\CaBundle\CaBundle::getSystemCaRootBundlePath() ] );
@@ -137,14 +174,10 @@ class Rest extends CI_Controller {
                 $this->load->model('Login_model');
                 $this->Login_model->create_logRow($aryR);
             }
-            
-            // var_dump($aryR);
-            
+                        
             $intRet = file_put_contents($this->loginfile, $json);
             echo '** login OK. save returns: '. $intRet .'   '. PHP_EOL;
             
-            // echo PHP_EOL;
-
         } catch (GuzzleHttp\Exception\BadResponseException $e) {
             #guzzle repose for future use
             $response = $e->getResponse();
@@ -312,9 +345,12 @@ class Rest extends CI_Controller {
 
 
     public function getVendors() {
-        echo 'REST URL: '. $this->rest_url .'<br />'. PHP_EOL . PHP_EOL;
+        set_time_limit(18000); // 3 minutes = 18,000
+        //echo '<pre>';
+        echo 'URL: '. $this->rest_url .PHP_EOL;
         if (strlen($this->rest_url) < 7) {
             // needs login!
+            echo PHP_EOL .'*** Relogin'. PHP_EOL;
             $this->login();
             $this->loadlogindata();
         }
@@ -322,6 +358,7 @@ class Rest extends CI_Controller {
         if (strlen($this->rest_url) < 7) {
             show_error('Login failure calling Vendor List', 500, $heading = 'An Error Was Encountered');
         }
+        echo 'Token: '. $this->acc_tokn .PHP_EOL;
 
         $this->load->library('Guzzle');
         $cli = new GuzzleHttp\Client( [ GuzzleHttp\RequestOptions::VERIFY => \Composer\CaBundle\CaBundle::getSystemCaRootBundlePath() ] );
@@ -331,90 +368,118 @@ class Rest extends CI_Controller {
         $ctr = 0;
         $total_rows = 0;
 
-        #This url define speific Target for guzzle
         $base = $this->rest_url .'api/v1/maintain/vendors?page[size]=' .$sz;
         $url = $base . '&page[number]='. $pg_num;
         $bod = '';
-//        echo '<pre>';
         echo date('Y-m-d H:i:s') . PHP_EOL;
         $dtSta = strtotime(date('Y-m-d H:i:s'));
-        #guzzle
+
         try {
-            # guzzle post request example with form parameter
-            $response = $cli->request( 'GET'
-                    , $url
-                    , [
-                            'allow_redirects' =>  false
-                            , 'body' => $bod
-                            , 'headers' => [ 'Content-type' => 'application/json'
-                                    , 'Authorization-Token' => $this->acc_tokn
+            $blnFetch = TRUE;
+            $response = FALSE;
+            $sta_code = 0;
+            while($blnFetch) {
+                $response = $cli->request( 'GET'
+                            , $url
+                            , [
+                                    'allow_redirects'   => false
+                                    , 'http_errors'     => false
+                                    , 'timeout'         => 20
+                                    , 'headers' => [ 'Content-type' => 'application/json'
+                                            , 'Authorization-Token' => $this->acc_tokn
+                                        ]
                                 ]
-                        ]
-                    );
-            #guzzle repose for future use
-            echo PHP_EOL .'URL: '. $url; // 200
-            echo PHP_EOL .'Statuscode: '. $response->getStatusCode(); // 200
-            echo PHP_EOL .'Reason: '. $response->getReasonPhrase(); // OK
-            $json = $response->getBody();
-            $aryR = json_decode($json);
-            echo PHP_EOL;
-            if (property_exists($aryR, 'total')) {
-                $total_rows = $aryR->total;
-                echo PHP_EOL .'**** total rows to process: '. $total_rows .' ***' . PHP_EOL;
-            } else {
-                $total_rows = 0;
-                echo PHP_EOL .'*** ERROR!'. PHP_EOL .'REST call returned unexpected schema:'. PHP_EOL . PHP_EOL;
-                echo $json . PHP_EOL . PHP_EOL . PHP_EOL;
-                return FALSE;
-            }
-            echo PHP_EOL. 'Type: '. $aryR->type;
-            echo PHP_EOL .'got: '. ($sz * $pg_num) .' of '. $total_rows .' in '. $sz . '-row chunks'. PHP_EOL;
-            $this->Mip_model->truncate_Vendor();
-            $batch = $this->mkGUID();
-            set_time_limit(600);
-            flush();
-            while ($ctr < $total_rows) {
-                foreach($aryR->data as $objR) {
-                    $aryI = array('batch'   => $batch
-                                , 'guid'    => $this->mkGUID()
-                                , 'id'      => $objR->id
-                                , 'classId' => $objR->classId
-                                , 'typeId'  => $objR->typeId
-                                , 'name'    => $objR->name
-                                , 'status'  => $objR->status
-                                , 'printedMainAddress' => $objR->printedMainAddress
                             );
-                    
-
-                    $this->Mip_model->create_Vendor($aryI);
-                    $ctr++;
-                    unset($aryI);
-                }
-                echo 'done page: '. $pg_num . PHP_EOL;
-                $pg_num++;
-
-                $url = $base . '&page[number]='. $pg_num ;
-                if($ctr < $total_rows) {
-                    $response = $cli->request( 'GET'
-                        , $url
-                        , [
-                                'allow_redirects' =>  false
-                                , 'body' => $bod
-                                , 'headers' => [ 'Content-type' => 'application/json'
-                                        , 'Authorization-Token' => $this->acc_tokn
-                                    ]
-                            ]
-                        );
-                    $json = $response->getBody();
-                    $aryR = json_decode($json);
-                    $total_rows = $aryR->total;
+                $sta_code = $response->getStatusCode();
+                $ctr++;
+                if ($ctr > 2) {
+                    $blnFetch = FALSE;
                 } else {
-                    unset($aryR);
-                    $objR = NULL;
+                    if ($sta_code != 200) {
+                        unset( $response );
+                        unset( $cli );
+                        if ($sta_code >= 500) {
+                            $blnFetch = FALSE; // don't bother to re-authenticate
+                        } else {
+                            echo PHP_EOL .'*** RELOGIN ***' . PHP_EOL . PHP_EOL;
+                            $this->login();
+                            $this->loadlogindata();
+                            $cli = new GuzzleHttp\Client( [ GuzzleHttp\RequestOptions::VERIFY => \Composer\CaBundle\CaBundle::getSystemCaRootBundlePath() ] );
+                        }
+                    } else {
+                        $blnFetch = FALSE;
+                    }
                 }
+            }
+            
+            if ($sta_code == 200) {
+                echo PHP_EOL .'URL: '. $url; // 200
+                echo PHP_EOL .'Statuscode: '. $response->getStatusCode(); // 200
+                echo PHP_EOL .'Reason: '. $response->getReasonPhrase(); // OK
+                $json = $response->getBody();
+                $aryR = json_decode($json);
+                echo PHP_EOL;
+                if (property_exists($aryR, 'total')) {
+                    $total_rows = $aryR->total;
+                    echo PHP_EOL .'**** total rows to process: '. $total_rows .' ***' . PHP_EOL;
+                } else {
+                    $total_rows = 0;
+                    echo PHP_EOL .'*** ERROR!'. PHP_EOL .'REST call returned unexpected schema:'. PHP_EOL . PHP_EOL;
+                    echo $json . PHP_EOL . PHP_EOL . PHP_EOL;
+                    return FALSE;
+                }
+                echo PHP_EOL. 'Type: '. $aryR->type;
+                echo PHP_EOL .'got: '. ($sz * $pg_num) .' of '. $total_rows .' in '. $sz . '-row chunks'. PHP_EOL;
+                $this->Mip_model->truncate_Vendor();
+                $batch = $this->mkGUID();
+                set_time_limit(600);
                 flush();
-            } 
-            echo '*** pages done: '. $ctr .' rows'. PHP_EOL;
+                while ($ctr < $total_rows) {
+                    foreach($aryR->data as $objR) {
+                        $aryI = array('batch'   => $batch
+                                    , 'guid'    => $this->mkGUID()
+                                    , 'id'      => $objR->id
+                                    , 'classId' => $objR->classId
+                                    , 'typeId'  => $objR->typeId
+                                    , 'name'    => $objR->name
+                                    , 'status'  => $objR->status
+                                    , 'printedMainAddress' => $objR->printedMainAddress
+                                );
+                        
+
+                        $this->Mip_model->create_Vendor($aryI);
+                        $ctr++;
+                        unset($aryI);
+                    }
+                    echo 'done page: '. $pg_num . PHP_EOL;
+                    $pg_num++;
+
+                    $url = $base . '&page[number]='. $pg_num ;
+                    if($ctr < $total_rows) {
+                        $response = $cli->request( 'GET'
+                            , $url
+                            , [
+                                    'allow_redirects' =>  false
+                                    , 'body' => $bod
+                                    , 'headers' => [ 'Content-type' => 'application/json'
+                                            , 'Authorization-Token' => $this->acc_tokn
+                                        ]
+                                ]
+                            );
+                        $json = $response->getBody();
+                        $aryR = json_decode($json);
+                        $total_rows = $aryR->total;
+                    } else {
+                        unset($aryR);
+                        $objR = NULL;
+                    }
+                    flush();
+                } 
+                echo '*** pages done: '. $ctr .' rows'. PHP_EOL;
+                echo 'mip_tblAPVendor refresh done'. PHP_EOL;
+            } else {
+                echo '*** FAILED: unexpected status code'. PHP_EOL;
+            }
         } catch (GuzzleHttp\Exception\BadResponseException $e) {
             #guzzle repose for future use
             $response = $e->getResponse();
@@ -426,7 +491,7 @@ class Rest extends CI_Controller {
             echo PHP_EOL .'*** *** *** ***'. PHP_EOL;
         }
         $dtEnd = strtotime(date('Y-m-d H:i:s'));
-        echo PHP_EOL .'mip_tblAPVendor refresh :: time elapsed: '. ($dtEnd - $dtSta) .'s'. PHP_EOL;
+        echo PHP_EOL .'time elapsed: '. ($dtEnd - $dtSta) .'s'. PHP_EOL;
         echo date('Y-m-d H:i:s');
 //        echo PHP_EOL .'</pre>';
 
@@ -440,8 +505,12 @@ class Rest extends CI_Controller {
 
     public function getCombi()  {
         ob_start();
+        set_time_limit(18000); // 3 minutes = 18,000
+        //echo '<pre>';
+        echo 'URL: '. $this->rest_url .PHP_EOL;
         if (strlen($this->rest_url) < 7) {
             // needs login!
+            echo PHP_EOL .'*** Relogin'. PHP_EOL;
             $this->login();
             $this->loadlogindata();
         }
@@ -449,13 +518,14 @@ class Rest extends CI_Controller {
         if (strlen($this->rest_url) < 7) {
             show_error('Login failure calling Combination List', 500, $heading = 'An Error Was Encountered');
         }
+        echo 'Token: '. $this->acc_tokn .PHP_EOL;
 
         $this->load->library('Guzzle');
         $cli = new GuzzleHttp\Client( [ GuzzleHttp\RequestOptions::VERIFY => \Composer\CaBundle\CaBundle::getSystemCaRootBundlePath() ] );
 
         $sz = 50;
+        $ctr = 0;
         $total_rows = 0;
-
         $base = $this->rest_url .'api/v1/maintain/accountcodecombinations?page[size]='. $sz;
         $url  = $this->rest_url .'api/v1/maintain/accountcodecombinations?page[size]=2';
         $bod = '';
@@ -463,81 +533,115 @@ class Rest extends CI_Controller {
         $dtSta = strtotime(date('Y-m-d H:i:s'));
 
         try {
-            $response = $cli->request( 'GET'
-                    , $url
-                    , [     'allow_redirects' => false, 'body' => $bod, 'headers' => [
-                                'Content-type' => 'application/json'
-                                , 'Authorization-Token' => $this->acc_tokn
+            $blnFetch = TRUE;
+            $response = FALSE;
+            $sta_code = 0;
+            while($blnFetch) {
+                $response = $cli->request( 'GET'
+                            , $url
+                            , [
+                                    'allow_redirects'   => false
+                                    , 'http_errors'     => false
+                                    , 'timeout'         => 20
+                                    , 'headers' => [ 'Content-type' => 'application/json'
+                                            , 'Authorization-Token' => $this->acc_tokn
+                                        ]
                                 ]
-                        ]
-                    );
-            echo PHP_EOL .'URL: '. $url . PHP_EOL .'Statuscode: '. $response->getStatusCode() . PHP_EOL .'Reason: '. $response->getReasonPhrase() .PHP_EOL; // OK
-            $json = $response->getBody();
-            $aryR = json_decode($json);
-            if (property_exists($aryR, 'total')) {
-                $total_rows = $aryR->total;
-                echo PHP_EOL .'**** total rows to process: '. $total_rows .' ***' .
-                        PHP_EOL .'Type: '. $aryR->type . PHP_EOL;
-            } else {
-                $total_rows = 0;
-                echo PHP_EOL .'*** ERROR!'. PHP_EOL .'REST call returned unexpected schema:'. PHP_EOL . PHP_EOL;
-                echo $json . PHP_EOL . PHP_EOL . PHP_EOL;
-                return FALSE;
+                            );
+                $sta_code = $response->getStatusCode();
+                $ctr++;
+                if ($ctr > 2) {
+                    $blnFetch = FALSE;
+                } else {
+                    if ($sta_code != 200) {
+                        unset( $response );
+                        unset( $cli );
+                        if ($sta_code >= 500) {
+                            $blnFetch = FALSE; // don't bother to re-authenticate
+                        } else {
+                            echo PHP_EOL .'*** RELOGIN ***' . PHP_EOL . PHP_EOL;
+                            $this->login();
+                            $this->loadlogindata();
+                            $cli = new GuzzleHttp\Client( [ GuzzleHttp\RequestOptions::VERIFY => \Composer\CaBundle\CaBundle::getSystemCaRootBundlePath() ] );
+                        }
+                    } else {
+                        $blnFetch = FALSE;
+                    }
+                }
             }
 
-            echo PHP_EOL .'should get: '. $total_rows .' rows in '. $sz . '-row chunks'. PHP_EOL . PHP_EOL;
-
-            $this->Mip_model->truncate_Combo();
-            
-            $batch = $this->mkGUID();
-            set_time_limit(600);
-            
-            $ctr = 0; $pg_num = 0;
-            while ($ctr < $total_rows) {
-                $url = $base . '&page[number]='. $pg_num;
-                $response = $cli->request( 'GET'
-                        , $url
-                        , [     'allow_redirects' =>  false
-                                , 'body' => $bod
-                                , 'headers' => [ 'Content-type' => 'application/json'
-                                        , 'Authorization-Token' => $this->acc_tokn
-                                    ]
-                            ]
-                        );
+            if ($sta_code == 200) {
+                echo PHP_EOL .'URL: '. $url . PHP_EOL .'Statuscode: '. $response->getStatusCode() . PHP_EOL .'Reason: '. $response->getReasonPhrase() .PHP_EOL; // OK
                 $json = $response->getBody();
                 $aryR = json_decode($json);
                 if (property_exists($aryR, 'total')) {
-                    // if ($pg_num > 24) { var_dump($aryR) . PHP_EOL; }
-                    if ($aryR->total <= 0) {
-                        echo PHP_EOL. 'last URL: '. $url . PHP_EOL;
-                        echo 'JSON: '. $json . PHP_EOL;
+                    $total_rows = $aryR->total;
+                    echo PHP_EOL .'**** total rows to process: '. $total_rows .' ***' .
+                            PHP_EOL .'Type: '. $aryR->type . PHP_EOL;
+                } else {
+                    $total_rows = 0;
+                    echo PHP_EOL .'*** ERROR!'. PHP_EOL .'REST call returned unexpected schema:'. PHP_EOL . PHP_EOL;
+                    echo $json . PHP_EOL . PHP_EOL . PHP_EOL;
+                    return FALSE;
+                }
+
+                echo PHP_EOL .'should get: '. $total_rows .' rows in '. $sz . '-row chunks'. PHP_EOL . PHP_EOL;
+
+                $this->Mip_model->truncate_Combo();
+                
+                $batch = $this->mkGUID();
+                set_time_limit(600);
+                
+                $ctr = 0; $pg_num = 0;
+                while ($ctr < $total_rows) {
+                    $url = $base . '&page[number]='. $pg_num;
+                    $response = $cli->request( 'GET'
+                            , $url
+                            , [     'allow_redirects' =>  false
+                                    , 'body' => $bod
+                                    , 'headers' => [ 'Content-type' => 'application/json'
+                                            , 'Authorization-Token' => $this->acc_tokn
+                                        ]
+                                ]
+                            );
+                    $json = $response->getBody();
+                    $aryR = json_decode($json);
+                    if (property_exists($aryR, 'total')) {
+                        // if ($pg_num > 24) { var_dump($aryR) . PHP_EOL; }
+                        if ($aryR->total <= 0) {
+                            echo PHP_EOL. 'last URL: '. $url . PHP_EOL;
+                            echo 'JSON: '. $json . PHP_EOL;
+                            break;
+                        }
+                    } else {
+                        echo 'last URL: '. $url . PHP_EOL;
+                        var_dump($aryR);
                         break;
                     }
-                } else {
-                    echo 'last URL: '. $url . PHP_EOL;
-                    var_dump($aryR);
-                    break;
+
+                    echo $ctr .' :: '. count($aryR->data) .' :: ';
+                    foreach($aryR->data as $objR) {
+                        $aryI = (array)$objR;
+                        $aryI['batch'] = $batch;
+                        $aryI['guid'] = $this->mkGUID();
+
+                        $this->Mip_model->create_Combo($aryI);
+                        $ctr++;
+                        unset($aryI);
+                    }
+                    echo 'done page: '. $pg_num .' ('. $ctr .'/'. $total_rows .')'. PHP_EOL;
+                    $pg_num++;
+
+                    unset($aryR);
+                    $objR = NULL;
+                    
                 }
-
-                echo $ctr .' :: '. count($aryR->data) .' :: ';
-                foreach($aryR->data as $objR) {
-                    $aryI = (array)$objR;
-                    $aryI['batch'] = $batch;
-                    $aryI['guid'] = $this->mkGUID();
-
-                    $this->Mip_model->create_Combo($aryI);
-                    $ctr++;
-                    unset($aryI);
-                }
-                echo 'done page: '. $pg_num .' ('. $ctr .'/'. $total_rows .')'. PHP_EOL;
-                $pg_num++;
-
-                unset($aryR);
-                $objR = NULL;
-                
+                // echo PHP_EOL. $json .PHP_EOL.PHP_EOL;
+                echo '*** pages done: '. $ctr .' rows'. PHP_EOL;
+                echo 'mip_tblComboEdit :: '. date('Y-m-d H:i:s');
+            } else {
+                echo '*** FAILED: unexpected status code'. PHP_EOL;
             }
-            // echo PHP_EOL. $json .PHP_EOL.PHP_EOL;
-            echo '*** pages done: '. $ctr .' rows'. PHP_EOL;
         } catch (GuzzleHttp\Exception\BadResponseException $e) {
             #guzzle repose for future use
             $response = $e->getResponse();
@@ -550,7 +654,6 @@ class Rest extends CI_Controller {
         }
         $dtEnd = strtotime(date('Y-m-d H:i:s'));
         echo PHP_EOL .'Time elapsed: '. ($dtEnd - $dtSta) .'s'. PHP_EOL;
-        echo 'mip_tblComboEdit :: '. date('Y-m-d H:i:s');
         // echo PHP_EOL .'</pre>';
         if($this->input->is_cli_request()) {
             $out = ob_get_clean();
@@ -563,8 +666,12 @@ class Rest extends CI_Controller {
 
 
     public function getChOA()  {
+        set_time_limit(30000); // 5 minutes 
+        //echo '<pre>';
+        echo 'URL: '. $this->rest_url .PHP_EOL;
         if (strlen($this->rest_url) < 7) {
             // needs login!
+            echo PHP_EOL .'*** Relogin'. PHP_EOL;
             $this->login();
             $this->loadlogindata();
         }
@@ -572,6 +679,7 @@ class Rest extends CI_Controller {
         if (strlen($this->rest_url) < 7) {
             show_error('Login failure calling Chart-of-Accounts', 500, $heading = 'An Error Was Encountered');
         }
+        echo 'Token: '. $this->acc_tokn .PHP_EOL;
 
         $this->load->library('Guzzle');
         $cli = new GuzzleHttp\Client( [ GuzzleHttp\RequestOptions::VERIFY => \Composer\CaBundle\CaBundle::getSystemCaRootBundlePath() ] );
@@ -585,87 +693,116 @@ class Rest extends CI_Controller {
         $base = $this->rest_url .'api/v1/maintain/ChartOfAccounts?page[size]=' .$sz;
         $url = $base . '&page[number]='. $pg_num;
         $bod = '';
-//        echo '<pre>';
         $dtSta = strtotime(date('Y-m-d H:i:s'));
-        #guzzle
+
         try {
-            # guzzle post request example with form parameter
-            $response = $cli->request( 'GET'
-                    , $url
-                    , [
-                            'allow_redirects' =>  false
-                            , 'body' => $bod
-                            , 'headers' => [ 'Content-type' => 'application/json'
-                                    , 'Authorization-Token' => $this->acc_tokn
+            $blnFetch = TRUE;
+            $response = FALSE;
+            $sta_code = 0;
+            while($blnFetch) {
+                $response = $cli->request( 'GET'
+                            , $url
+                            , [
+                                    'allow_redirects'   => false
+                                    , 'http_errors'     => false
+                                    , 'timeout'         => 20
+                                    , 'headers' => [ 'Content-type' => 'application/json'
+                                            , 'Authorization-Token' => $this->acc_tokn
+                                        ]
                                 ]
-                        ]
-                    );
-            #guzzle repose for future use
-            echo PHP_EOL .'URL: '. $url; // 200
-            echo PHP_EOL .'Statuscode: '. $response->getStatusCode(); // 200
-            echo PHP_EOL .'Reason: '. $response->getReasonPhrase(); // OK
-            $json = $response->getBody();
-            $aryR = json_decode($json);
-            echo PHP_EOL;
-            if (property_exists($aryR, 'total')) {
-                $total_rows = $aryR->total;
-                echo PHP_EOL .'**** total rows to process: '. $total_rows .' ***' . PHP_EOL;
-            } else {
-                $total_rows = 0;
-                echo PHP_EOL .'*** ERROR!'. PHP_EOL .'REST call returned unexpected schema:'. PHP_EOL . PHP_EOL;
-                echo $json . PHP_EOL . PHP_EOL . PHP_EOL;
-                return FALSE;
-            }
-            
-            
-            echo PHP_EOL .'got: '. ($sz * $pg_num) .' of '. $total_rows .' in '. $sz . '-row chunks'. PHP_EOL;
-            $this->Mip_model->truncate_AllMIP();
-            $batch = $this->mkGUID();
-            set_time_limit(600);
-            flush();
-            while ($ctr < $total_rows) {
-                foreach($aryR->data as $objR) {
-                    $aryI = (array)$objR;
-                    $aryI['batch'] = $batch;
-                    $aryI['guid'] = $this->mkGUID();
-
-                    $this->Mip_model->create_COA($aryI);
-                    $seg = intval($objR->segmentId);
-                    if ( ($seg != 0) && ($seg != 1) && ($seg != 10) && ($seg != 2) && ($seg != 3) && ($seg != 4) && ($seg != 5) && ($seg != 7) && ($seg != 9) ) {
-                        //show_error('Unknown segment!', 500, $heading = 'An Error Was Encountered');
-                        echo 'discarding: '. $objR->accountTitle .' [seg=' . $seg .']'. PHP_EOL;
-                    } else {
-                        $this->Mip_model->create_tblRow($aryI, $seg);
-                    }
-                    $ctr++;
-                }
-                echo 'done page: '. $pg_num . PHP_EOL;
-                $pg_num++;
-
-                $url = $base . '&page[number]='. $pg_num ;
-                if($ctr < $total_rows) {
-                    $response = $cli->request( 'GET'
-                        , $url
-                        , [
-                                'allow_redirects' =>  false
-                                , 'body' => $bod
-                                , 'headers' => [ 'Content-type' => 'application/json'
-                                        , 'Authorization-Token' => $this->acc_tokn
-                                    ]
-                            ]
-                        );
-                    $json = $response->getBody();
-                    $aryR = json_decode($json);
-                    $total_rows = $aryR->total;
+                            );
+                $sta_code = $response->getStatusCode();
+                $ctr++;
+                if ($ctr > 2) {
+                    $blnFetch = FALSE;
                 } else {
-                    unset($aryR);
-                    $objR = NULL;
+                    if ($sta_code != 200) {
+                        unset( $response );
+                        unset( $cli );
+                        if ($sta_code >= 500) {
+                            $blnFetch = FALSE; // don't bother to re-authenticate
+                        } else {
+                            echo PHP_EOL .'*** RELOGIN ***' . PHP_EOL . PHP_EOL;
+                            $this->login();
+                            $this->loadlogindata();
+                            $cli = new GuzzleHttp\Client( [ GuzzleHttp\RequestOptions::VERIFY => \Composer\CaBundle\CaBundle::getSystemCaRootBundlePath() ] );
+                        }
+                    } else {
+                        $blnFetch = FALSE;
+                    }
                 }
+            }
+
+            if ($sta_code == 200) {
+                echo PHP_EOL .'URL: '. $url;
+                echo PHP_EOL .'Statuscode: '. $response->getStatusCode(); // 200
+                echo PHP_EOL .'Reason: '. $response->getReasonPhrase(); // OK
+                $json = $response->getBody();
+                $aryR = json_decode($json);
+                echo PHP_EOL;
+                if (property_exists($aryR, 'total')) {
+                    $total_rows = $aryR->total;
+                    echo PHP_EOL .'**** total rows to process: '. $total_rows .' ***' . PHP_EOL;
+                } else {
+                    $total_rows = 0;
+                    echo PHP_EOL .'*** ERROR!'. PHP_EOL .'REST call returned unexpected schema:'. PHP_EOL . PHP_EOL;
+                    echo $json . PHP_EOL . PHP_EOL . PHP_EOL;
+                    return FALSE;
+                }
+                
+                
+                echo PHP_EOL .'got: '. ($sz * $pg_num) .' of '. $total_rows .' in '. $sz . '-row chunks'. PHP_EOL;
+                $this->Mip_model->truncate_AllMIP();
+                $batch = $this->mkGUID();
+                set_time_limit(600);
                 flush();
-            } 
-            echo '*** pages done :: got '. $ctr .' rows'. PHP_EOL;
+                while ($ctr < $total_rows) {
+                    foreach($aryR->data as $objR) {
+                        $aryI = (array)$objR;
+                        $aryI['batch'] = $batch;
+                        $aryI['guid'] = $this->mkGUID();
+
+                        $this->Mip_model->create_COA($aryI);
+                        $seg = intval($objR->segmentId);
+                        if ( ($seg != 0) && ($seg != 1) && ($seg != 10) && ($seg != 2) && ($seg != 3) && ($seg != 4) && ($seg != 5) && ($seg != 7) && ($seg != 9) ) {
+                            //show_error('Unknown segment!', 500, $heading = 'An Error Was Encountered');
+                            echo 'discarding: '. $objR->accountTitle .' [seg=' . $seg .']'. PHP_EOL;
+                        } else {
+                            $this->Mip_model->create_tblRow($aryI, $seg);
+                        }
+                        $ctr++;
+                    }
+                    echo 'done page: '. $pg_num . PHP_EOL;
+                    $pg_num++;
+
+                    $url = $base . '&page[number]='. $pg_num ;
+                    if($ctr < $total_rows) {
+                        $response = $cli->request( 'GET'
+                            , $url
+                            , [
+                                    'allow_redirects' =>  false
+                                    , 'body' => $bod
+                                    , 'headers' => [ 'Content-type' => 'application/json'
+                                            , 'Authorization-Token' => $this->acc_tokn
+                                        ]
+                                ]
+                            );
+                        $json = $response->getBody();
+                        $aryR = json_decode($json);
+                        $total_rows = $aryR->total;
+                    } else {
+                        unset($aryR);
+                        $objR = NULL;
+                    }
+                    flush();
+                } 
+                echo '*** pages done :: got '. $ctr .' rows'. PHP_EOL;
+                echo 'mip_tblAcctCode_xx (all) refresh done :: '. date('Y-m-d H:i:s');
+            } else {
+                echo '*** FAILED: unexpected status code'. PHP_EOL;
+            }
         } catch (GuzzleHttp\Exception\BadResponseException $e) {
-            #guzzle repose for future use
+            echo PHP_EOL .'**** ERROR!!'. PHP_EOL;
             $response = $e->getResponse();
             $responseBodyAsString = $response->getBody()->getContents();
             print_r($responseBodyAsString);
@@ -676,7 +813,6 @@ class Rest extends CI_Controller {
         }
         $dtEnd = strtotime(date('Y-m-d H:i:s'));
         echo PHP_EOL .'Time elapsed: '. ($dtEnd - $dtSta);
-        echo 'mip_tblAcctCode_xx refresh done :: '. date('Y-m-d H:i:s');
 //        echo PHP_EOL .'</pre>';
 
 //        $this->logout();
@@ -684,6 +820,9 @@ class Rest extends CI_Controller {
 
 
     public function getTAC($seg = 0)  {
+        set_time_limit(18000); // 3 minutes = 18,000
+        //echo '<pre>';
+        echo 'URL: '. $this->rest_url .PHP_EOL;
         if (strlen($this->rest_url) < 7) {
             // needs login!
             echo '<p>*** Relogin</p>'. PHP_EOL;
@@ -694,7 +833,7 @@ class Rest extends CI_Controller {
         if (strlen($this->rest_url) < 7) {
             show_error('Login failure calling tblAcctCode-equivalent', 500, $heading = 'An Error Was Encountered');
         }
-
+        echo 'Token: '. $this->acc_tokn .PHP_EOL;
         $seg = intval($seg);
         if ( ($seg != 0) && ($seg != 1) && ($seg != 10) && ($seg != 2) && ($seg != 3) && ($seg != 4) && ($seg != 5) && ($seg != 7) && ($seg != 9) ) {
             show_error('Unknown segment!', 500, $heading = 'An Error Was Encountered');
@@ -712,65 +851,100 @@ class Rest extends CI_Controller {
         $url = $base . '&page[number]='. $pg_num;
         
         $bod = '';
-        //echo '<pre>';
         echo 'Started: '. date('Y-m-d H:i:s') . PHP_EOL;
         $dtSta = strtotime(date('Y-m-d H:i:s'));
 
         try {
-            $response = $cli->request( 'GET'
-                    , $url
-                    , [
-                            'allow_redirects' =>  false
-                            , 'body' => $bod
-                            , 'headers' => [ 'Content-type' => 'application/json'
-                                    , 'Authorization-Token' => $this->acc_tokn
+            $blnFetch = TRUE;
+            $response = FALSE;
+            $sta_code = 0;
+            while($blnFetch) {
+                $response = $cli->request( 'GET'
+                            , $url
+                            , [
+                                    'allow_redirects'   => false
+                                    , 'body'            => $bod
+                                    , 'http_errors'     => false
+                                    , 'timeout'         => 15
+                                    , 'headers' => [ 'Content-type' => 'application/json'
+                                            , 'Authorization-Token' => $this->acc_tokn
+                                        ]
                                 ]
-                        ]
-                    );
-            //echo PHP_EOL .'URL: '. $url; // 200
-            echo PHP_EOL .'Statuscode: '. $response->getStatusCode(); // 200
-            echo PHP_EOL .'Reason: '. $response->getReasonPhrase(); // OK
-            echo PHP_EOL .'Protocol: '. $response->getProtocolVersion(); // 1.1
-            $json = $response->getBody();
-            $aryR = json_decode($json);
-            echo PHP_EOL;
-            $total_rows = $aryR->total;
-            echo PHP_EOL .'**** total rows to process: '. $total_rows .' ***' . PHP_EOL;
-            flush();
-            // $this->Mip_model->truncate_tblRow($seg);
-            $batch = $this->mkGUID();
-            set_time_limit(600);
-            while ($ctr < $total_rows) {
-                foreach($aryR->data as $objR) {
-                    $aryI = (array)$objR;
-                    $aryI['batch'] = $batch;
-                    $aryI['guid'] = $this->mkGUID();
-
-                    // $this->Mip_model->create_tblRow($aryI, $seg);
-                    $ctr++;
+                            );
+                $sta_code = $response->getStatusCode();
+                $ctr++;
+                if ($ctr > 2) {
+                    $blnFetch = FALSE;
+                } else {
+                    if ($sta_code != 200) {
+                        unset( $response );
+                        unset( $cli );
+                        if ($sta_code >= 500) {
+                            $blnFetch = FALSE; // don't bother to re-authenticate
+                        } else {
+                            echo PHP_EOL .'*** RELOGIN ***' . PHP_EOL . PHP_EOL;
+                            $this->login();
+                            $this->loadlogindata();
+                            $cli = new GuzzleHttp\Client( [ GuzzleHttp\RequestOptions::VERIFY => \Composer\CaBundle\CaBundle::getSystemCaRootBundlePath() ] );
+                        }
+                    } else {
+                        $blnFetch = FALSE;
+                    }
                 }
-                echo 'done page: '. $pg_num . PHP_EOL;
-                $pg_num++;
+            }
 
-                $url = $base . '&page[number]='. $pg_num;
-                if ($ctr < $total_rows) {
-                    $response = $cli->request( 'GET'
-                        , $url
-                        , [
-                                'allow_redirects' => false, 'body' => $bod
-                                , 'headers' => [ 'Content-type' => 'application/json'
-                                        , 'Authorization-Token' => $this->acc_tokn
-                                    ]
-                            ]
-                        );
-                    $json = $response->getBody();
-                    $aryR = json_decode($json);
-                }
+            if ($sta_code == 200) {
+                //echo PHP_EOL .'URL: '. $url; // 200
+                echo PHP_EOL .'Statuscode: '    . $response->getStatusCode();       // 200
+                echo PHP_EOL .'Reason: '        . $response->getReasonPhrase();     // OK
+                echo PHP_EOL .'Protocol: '      . $response->getProtocolVersion();  // 1.1
+                $json = $response->getBody();
+                $aryR = json_decode($json);
+                echo PHP_EOL;
+                $total_rows = $aryR->total;
+                echo PHP_EOL .'**** total rows to process: '. $total_rows .' ***' . PHP_EOL;
                 flush();
-            } 
-            echo '*** pages done :: got: '. $ctr .' rows'. PHP_EOL;
+                // $this->Mip_model->truncate_tblRow($seg);
+                $batch = $this->mkGUID();
+                set_time_limit(600);
+                while ($ctr < $total_rows) {
+                    foreach($aryR->data as $objR) {
+                        $aryI = (array)$objR;
+                        $aryI['batch'] = $batch;
+                        $aryI['guid'] = $this->mkGUID();
+
+                        // $this->Mip_model->create_tblRow($aryI, $seg);
+                        $ctr++;
+                    }
+                    echo 'done page: '. $pg_num . PHP_EOL;
+                    $pg_num++;
+
+                    $url = $base . '&page[number]='. $pg_num;
+                    if ($ctr < $total_rows) {
+                        $response = $cli->request( 'GET'
+                            , $url
+                            , [
+                                    'allow_redirects' => false
+                                    , 'body' => $bod
+                                    , 'http_errors' => false
+                                    , 'headers' => [ 'Content-type' => 'application/json'
+                                            , 'Authorization-Token' => $this->acc_tokn
+                                        ]
+                                ]
+                            );
+                        $json = $response->getBody();
+                        $aryR = json_decode($json);
+                    }
+                    flush();
+                } 
+                echo '*** pages done :: got: '. $ctr .' rows'. PHP_EOL;
+                echo PHP_EOL .'mip_tblAcctCode_'. $seg .' refresh done :: '. date('Y-m-d H:i:s');
+            } else {
+                echo '*** FAILED: unexpected status code'. PHP_EOL;
+            }
         } catch (GuzzleHttp\Exception\BadResponseException $e) {
             #guzzle repose for future use
+            echo PHP_EOL .'**** ERROR!!'. PHP_EOL;
             $response = $e->getResponse();
             $responseBodyAsString = $response->getBody()->getContents();
             print_r($responseBodyAsString);
@@ -781,9 +955,6 @@ class Rest extends CI_Controller {
         }
         $dtEnd = strtotime(date('Y-m-d H:i:s'));
         echo PHP_EOL .'Time elapsed: '. ($dtEnd - $dtSta);
-        echo PHP_EOL .'mip_tblAcctCode_'. $seg .' refresh done :: '. date('Y-m-d H:i:s');
-        // echo PHP_EOL .'</pre>';
-
 //        $this->logout();
     }
 

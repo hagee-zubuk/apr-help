@@ -21,7 +21,9 @@ if (!is_int($logtime)) {
         <div class="columns">
             <div class="column is-4">
     <p style="font-size: 80%;">
-        Last apparent login: <?= date('m/d/y H:i e', $logtime) ?> 
+        Last apparent login: <?= date('m/d/y H:i e', $logtime) ?> <br />
+        URL: <?= $resturl ?><br />
+        Token: <?= $acctokn ?>
     </p>
     <!-- p>MIP Base URL: <b><?= $resturl?></b> </p -->
 
