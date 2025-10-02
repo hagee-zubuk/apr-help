@@ -107,6 +107,8 @@ function doRest(zzcall) {
                         $('#txtDebug').text(data);
                         $('#tblButtons').show();
                         $('#wait').hide();
+                        var psconsole = $('#txtDebug');
+                        if (psconsole.length) psconsole.scrollTop(psconsole[0].scrollHeight - psconsole.height());
                     }
                 , error: function(e) {
                         $('#txtDebug').text('something went wrong!');
