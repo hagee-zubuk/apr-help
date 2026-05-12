@@ -954,7 +954,7 @@ class Rest extends CI_Controller {
                         $aryI['batch'] = $batch;
                         $aryI['guid'] = $this->mkGUID();
 
-                        // $this->Mip_model->create_tblRow($aryI, $seg);
+                        $this->Mip_model->create_tblRow($aryI, $seg);
                         $ctr++;
                     }
                     $msgs .= 'done page: '. $pg_num . PHP_EOL;
