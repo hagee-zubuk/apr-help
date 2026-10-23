@@ -944,9 +944,15 @@ class Rest extends CI_Controller {
                 $json = $response->getBody();
                 array_push($this->responses, $json);
                 $aryR = json_decode($json);
-
-                $total_rows = $aryR->total;
-                $msgs .= PHP_EOL .'**** total rows to process: '. $total_rows .' ***' . PHP_EOL;
+                if (property_exists($aryR, 'total')) {
+                    $total_rows = $aryR->total;    
+                    $msgs .= PHP_EOL .'**** total rows to process: '. $total_rows .' ***' . PHP_EOL;
+                } else {
+                    $msgs .= PHP_EOL .'**** total processed rows unknown: ***' . PHP_EOL;
+                    $msgs .= PHP_EOL . print_r($aryR, TRUE) . PHP_EOL;
+                }
+                
+                
                 $batch = $this->mkGUID();
                 set_time_limit(600);
                 while ($ctr < $total_rows) {
