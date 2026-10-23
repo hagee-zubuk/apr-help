@@ -944,25 +944,14 @@ class Rest extends CI_Controller {
                 $json = $response->getBody();
                 array_push($this->responses, $json);
                 $aryR = json_decode($json);
-<<<<<<< HEAD
-                $this->Mip_model->truncate_tblRow($seg);
-                $total_rows = $aryR->total;
-                $msgs .= PHP_EOL .'**** total rows to process: '. $total_rows .' ***' . PHP_EOL;
-=======
                 if (property_exists($aryR, 'total')) {
                     $total_rows = $aryR->total;    
                     $msgs .= PHP_EOL .'**** total rows to process: '. $total_rows .' ***' . PHP_EOL;
                 } else {
                     $msgs .= PHP_EOL .'**** total processed rows unknown: ***' . PHP_EOL;
                     $msgs .= PHP_EOL . print_r($aryR, TRUE) . PHP_EOL;
-                }
+                }                
                 
-                
-<<<<<<< HEAD
->>>>>>> b8bf465be48708555acd7d48d32b9bcdbb8e7e21
-=======
->>>>>>> b8bf465 (administrative sync)
->>>>>>> 645e116 (conf resolution 2)
                 $batch = $this->mkGUID();
                 set_time_limit(600);
                 while ($ctr < $total_rows) {
