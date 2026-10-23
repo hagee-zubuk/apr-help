@@ -6,7 +6,7 @@
  *
  * This content is released under the MIT License (MIT)
  *
- * Copyright (c) 2014 - 2018, British Columbia Institute of Technology
+ * Copyright (c) 2019 - 2022, CodeIgniter Foundation
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -29,8 +29,9 @@
  * @package	CodeIgniter
  * @author	EllisLab Dev Team
  * @copyright	Copyright (c) 2008 - 2014, EllisLab, Inc. (https://ellislab.com/)
- * @copyright	Copyright (c) 2014 - 2018, British Columbia Institute of Technology (http://bcit.ca/)
- * @license	http://opensource.org/licenses/MIT	MIT License
+ * @copyright	Copyright (c) 2014 - 2019, British Columbia Institute of Technology (https://bcit.ca/)
+ * @copyright	Copyright (c) 2019 - 2022, CodeIgniter Foundation (https://codeigniter.com/)
+ * @license	https://opensource.org/licenses/MIT	MIT License
  * @link	https://codeigniter.com
  * @since	Version 1.0.0
  * @filesource
@@ -44,7 +45,7 @@ defined('BASEPATH') OR exit('No direct script access allowed');
  * @subpackage	Helpers
  * @category	Helpers
  * @author		EllisLab Dev Team
- * @link		https://codeigniter.com/user_guide/helpers/url_helper.html
+ * @link		https://codeigniter.com/userguide3/helpers/url_helper.html
  */
 
 // ------------------------------------------------------------------------
@@ -211,7 +212,7 @@ if ( ! function_exists('anchor_popup'))
 		{
 			$attributes = array($attributes);
 
-			// Ref: http://www.w3schools.com/jsref/met_win_open.asp
+			// Ref: https://www.w3schools.com/jsref/met_win_open.asp
 			$window_name = '_blank';
 		}
 		elseif ( ! empty($attributes['window_name']))
@@ -396,7 +397,7 @@ if ( ! function_exists('auto_link'))
 		if ($type !== 'email' && preg_match_all('#(\w*://|www\.)[a-z0-9]+(-+[a-z0-9]+)*(\.[a-z0-9]+(-+[a-z0-9]+)*)+(/([^\s()<>;]+\w)?/?)?#i', $str, $matches, PREG_OFFSET_CAPTURE | PREG_SET_ORDER))
 		{
 			// Set our target HTML if using popup links.
-			$target = ($popup) ? ' target="_blank"' : '';
+			$target = ($popup) ? ' target="_blank" rel="noopener"' : '';
 
 			// We process the links in reverse order (last -> first) so that
 			// the returned string offsets from preg_match_all() are not
@@ -443,7 +444,7 @@ if ( ! function_exists('prep_url'))
 	 */
 	function prep_url($str = '')
 	{
-		if ($str === 'http://' OR $str === '')
+		if ($str === '')
 		{
 			return '';
 		}
@@ -470,10 +471,8 @@ if ( ! function_exists('url_title'))
 	 * human-friendly URL string with a "separator" string
 	 * as the word separator.
 	 *
-	 * @todo	Remove old 'dash' and 'underscore' usage in 3.1+.
 	 * @param	string	$str		Input string
-	 * @param	string	$separator	Word separator
-	 *			(usually '-' or '_')
+	 * @param	string	$separator	Word separator (usually '-' or '_')
 	 * @param	bool	$lowercase	Whether to transform the output string to lowercase
 	 * @return	string
 	 */
@@ -494,7 +493,7 @@ if ( ! function_exists('url_title'))
 			'&.+?;'			=> '',
 			'[^\w\d _-]'		=> '',
 			'\s+'			=> $separator,
-			'('.$q_separator.')+'	=> $separator
+			'('.$q_separator.')+'	=> $separator,
 		);
 
 		$str = strip_tags($str);
@@ -546,7 +545,7 @@ if ( ! function_exists('redirect'))
 			if (isset($_SERVER['SERVER_PROTOCOL'], $_SERVER['REQUEST_METHOD']) && $_SERVER['SERVER_PROTOCOL'] === 'HTTP/1.1')
 			{
 				$code = ($_SERVER['REQUEST_METHOD'] !== 'GET')
-					? 303	// reference: http://en.wikipedia.org/wiki/Post/Redirect/Get
+					? 303	// reference: https://en.wikipedia.org/wiki/Post/Redirect/Get
 					: 307;
 			}
 			else

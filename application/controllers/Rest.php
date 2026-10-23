@@ -52,7 +52,7 @@ class Rest extends CI_Controller {
         }
 
         // Fallback (PHP 4.2+)
-        mt_srand((double)microtime() * 10000);
+        mt_srand((float)microtime() * 10000);
         $charid = strtolower(md5(uniqid(rand(), true)));
         $hyphen = chr(45);                  // "-"
         $lbrace = $trim ? "" : chr(123);    // "{"
@@ -146,9 +146,9 @@ class Rest extends CI_Controller {
 
         $url = 'https://login.mip.com/api/v1/sso/mipadv/login';
         $bod =  json_encode(
-                    array('username'    => 'api.read'
-                        , 'password'    => 'blueSt@rt57'
-                        , 'org'         => 'ACA_13903_TEST'
+                    array('username'    => ''
+                        , 'password'    => ''
+                        , 'org'         => ''
                     )
                 );
         $debug .= 'do login()..'. PHP_EOL;
@@ -469,6 +469,7 @@ class Rest extends CI_Controller {
                                     , 'name'    => $objR->name
                                     , 'status'  => $objR->status
                                     , 'printedMainAddress' => $objR->printedMainAddress
+                                    , 'vendorAddDate' => $objR->vendorAddDate
                                 );
                         
                         $this->Mip_model->create_Vendor($aryI);
