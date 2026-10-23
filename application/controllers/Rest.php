@@ -958,7 +958,11 @@ class Rest extends CI_Controller {
                 }
                 
                 
+<<<<<<< HEAD
 >>>>>>> b8bf465be48708555acd7d48d32b9bcdbb8e7e21
+=======
+>>>>>>> b8bf465 (administrative sync)
+>>>>>>> 645e116 (conf resolution 2)
                 $batch = $this->mkGUID();
                 set_time_limit(600);
                 while ($ctr < $total_rows) {
