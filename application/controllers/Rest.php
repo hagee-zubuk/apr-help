@@ -944,7 +944,7 @@ class Rest extends CI_Controller {
                 $json = $response->getBody();
                 array_push($this->responses, $json);
                 $aryR = json_decode($json);
-
+                $this->Mip_model->truncate_tblRow($seg);
                 $total_rows = $aryR->total;
                 $msgs .= PHP_EOL .'**** total rows to process: '. $total_rows .' ***' . PHP_EOL;
                 $batch = $this->mkGUID();
