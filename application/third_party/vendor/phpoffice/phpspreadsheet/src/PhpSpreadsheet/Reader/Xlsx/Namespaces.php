@@ -18,13 +18,21 @@ class Namespaces
 
     const THEME = 'http://schemas.openxmlformats.org/package/2006/relationships/theme';
 
+    const THEME2 = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/theme';
+
     const COMPATIBILITY = 'http://schemas.openxmlformats.org/markup-compatibility/2006';
 
     const MAIN = 'http://schemas.openxmlformats.org/spreadsheetml/2006/main';
 
+    const RELATIONSHIPS_DRAWING = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/drawing';
+
     const DRAWINGML = 'http://schemas.openxmlformats.org/drawingml/2006/main';
 
     const CHART = 'http://schemas.openxmlformats.org/drawingml/2006/chart';
+
+    const CHART_ALTERNATE = 'http://schemas.microsoft.com/office/drawing/2007/8/2/chart';
+
+    const RELATIONSHIPS_CHART = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart';
 
     const SPREADSHEET_DRAWING = 'http://schemas.openxmlformats.org/drawingml/2006/spreadsheetDrawing';
 
@@ -32,9 +40,17 @@ class Namespaces
 
     const COMMENTS = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/comments';
 
-    //const CUSTOM_PROPERTIES = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/custom-properties';
+    const RELATIONSHIPS_CUSTOM_PROPERTIES = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/custom-properties';
 
-    //const EXTENDED_PROPERTIES = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/extended-properties';
+    const RELATIONSHIPS_EXTENDED_PROPERTIES = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/extended-properties';
+
+    const RELATIONSHIPS_CTRLPROP = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/ctrlProp';
+
+    const CUSTOM_PROPERTIES = 'http://schemas.openxmlformats.org/officeDocument/2006/custom-properties';
+
+    const EXTENDED_PROPERTIES = 'http://schemas.openxmlformats.org/officeDocument/2006/extended-properties';
+
+    const PROPERTIES_VTYPES = 'http://schemas.openxmlformats.org/officeDocument/2006/docPropsVTypes';
 
     const HYPERLINK = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink';
 
@@ -58,9 +74,37 @@ class Namespaces
 
     const VBA = 'http://schemas.microsoft.com/office/2006/relationships/vbaProject';
 
+    const VBA_SIGNATURE = 'http://schemas.microsoft.com/office/2006/relationships/vbaProject';
+
+    const DATA_VALIDATIONS1 = 'http://schemas.microsoft.com/office/spreadsheetml/2009/9/main';
+
+    const DATA_VALIDATIONS2 = 'http://schemas.microsoft.com/office/excel/2006/main';
+
+    const CONTENT_TYPES = 'http://schemas.openxmlformats.org/package/2006/content-types';
+
+    const RELATIONSHIPS_METADATA = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/sheetMetadata';
+
+    const RELATIONSHIPS_PRINTER_SETTINGS = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/printerSettings';
+
+    const RELATIONSHIPS_TABLE = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/table';
+
+    const RELATIONSHIPS_PIVOT_TABLE = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/pivotTable';
+
+    const RELATIONSHIPS_PIVOT_CACHE_DEFINITION = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/pivotCacheDefinition';
+
+    const RELATIONSHIPS_PIVOT_CACHE_RECORDS = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/pivotCacheRecords';
+
+    const SPREADSHEETML_AC = 'http://schemas.microsoft.com/office/spreadsheetml/2009/9/ac';
+
     const DC_ELEMENTS = 'http://purl.org/dc/elements/1.1/';
 
-    const DC_TERMS = 'http://purl.org/dc/terms';
+    const DC_TERMS = 'http://purl.org/dc/terms/';
+
+    const DC_DCMITYPE = 'http://purl.org/dc/dcmitype/';
+
+    const SCHEMA_INSTANCE = 'http://www.w3.org/2001/XMLSchema-instance';
+
+    const URN_EXCEL = 'urn:schemas-microsoft-com:office:excel';
 
     const URN_MSOFFICE = 'urn:schemas-microsoft-com:office:office';
 
@@ -79,4 +123,24 @@ class Namespaces
     const PURL_CHART = 'http://purl.oclc.org/ooxml/drawingml/chart';
 
     const PURL_WORKSHEET = 'http://purl.oclc.org/ooxml/officeDocument/relationships/worksheet';
+
+    const DYNAMIC_ARRAY = 'http://schemas.microsoft.com/office/spreadsheetml/2017/dynamicarray';
+
+    const DYNAMIC_ARRAY_RICHDATA = 'http://schemas.microsoft.com/office/spreadsheetml/2017/richdata';
+
+    const RELATIONSHIPS_RICH_VALUE_TYPES = 'http://schemas.microsoft.com/office/2017/06/relationships/rdRichValueTypes';
+
+    const RELATIONSHIPS_RICH_VALUE_STRUCTURE = 'http://schemas.microsoft.com/office/2017/06/relationships/rdRichValueStructure';
+
+    const RELATIONSHIPS_RICH_VALUE = 'http://schemas.microsoft.com/office/2017/06/relationships/rdRichValue';
+
+    const RELATIONSHIPS_RICH_VALUE_REL = 'http://schemas.microsoft.com/office/2022/10/relationships/richValueRel';
+
+    const FEATURE_PROPERTY_BAG = 'http://schemas.microsoft.com/office/spreadsheetml/2022/featurepropertybag';
+    const RELATIONSHIPS_FEATURE_PROPERTY_BAG = 'http://schemas.microsoft.com/office/2022/11/relationships/FeaturePropertyBag';
+    const STYLE_CHECKBOX_URI = '{C7286773-470A-42A8-94C5-96B5CB345126}';
+
+    const SPARKLINE_URI = '{05C60535-1F16-4fd2-B633-F4F36F0B64E0}';
+
+    const MISLEADING_FORMAT = 'http://schemas.microsoft.com/office/spreadsheetml/2018/08/main';
 }

@@ -6,10 +6,7 @@ use PhpOffice\PhpSpreadsheet\Style\Border;
 
 class CellBorder
 {
-    /**
-     * @var array<string, int>
-     */
-    protected static $styleMap = [
+    protected const BORDER_MAP = [
         Border::BORDER_NONE => 0x00,
         Border::BORDER_THIN => 0x01,
         Border::BORDER_MEDIUM => 0x02,
@@ -24,16 +21,13 @@ class CellBorder
         Border::BORDER_DASHDOTDOT => 0x0B,
         Border::BORDER_MEDIUMDASHDOTDOT => 0x0C,
         Border::BORDER_SLANTDASHDOT => 0x0D,
+        Border::BORDER_OMIT => 0x00,
     ];
 
     public static function style(Border $border): int
     {
         $borderStyle = $border->getBorderStyle();
 
-        if (is_string($borderStyle) && array_key_exists($borderStyle, self::$styleMap)) {
-            return self::$styleMap[$borderStyle];
-        }
-
-        return self::$styleMap[Border::BORDER_NONE];
+        return self::BORDER_MAP[$borderStyle] ?? self::BORDER_MAP[Border::BORDER_NONE];
     }
 }

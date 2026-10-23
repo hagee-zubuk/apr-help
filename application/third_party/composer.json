@@ -9,7 +9,7 @@
         }
     ],
     "require": {
-        "guzzlehttp/guzzle": "^7.9"
+        "guzzlehttp/guzzle": ">=7.9"
         ,"composer/ca-bundle": ">=1.5"
         ,"phpoffice/phpspreadsheet": ">=1.25"
     }
