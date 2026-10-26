@@ -83,6 +83,14 @@ if (!is_int($logtime)) {
 <div style="width: 100%; text-align: center;">
     <?= $logout?>
 </div>
+<div style="font-size:80%;">
+    <p>Current counts</p>
+    <div>
+<pre>
+    <?=var_dump($counts)?>
+</pre>        
+    </div>
+</div>
         </div><!-- column -->
         <div class="column">
             <div id="debugsection" style="margin-top: 5%;">

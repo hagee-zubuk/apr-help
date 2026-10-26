@@ -133,6 +133,8 @@ class Rest extends CI_Controller {
                     );
         }
 
+        $dat['counts'] = $this->Mip_model->count_tblRows();
+
         $this->load->view('rest-page.php', $dat);
     }
 
@@ -950,6 +952,7 @@ class Rest extends CI_Controller {
                 } else {
                     $msgs .= PHP_EOL .'**** total processed rows unknown: ***' . PHP_EOL;
                     $msgs .= PHP_EOL . print_r($aryR, TRUE) . PHP_EOL;
+                    $total_rows = 0;
                 }                
                 
                 $batch = $this->mkGUID();

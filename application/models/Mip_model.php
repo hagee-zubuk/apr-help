@@ -38,6 +38,75 @@ class Mip_model extends CI_Model {
 	}
 
 
+	public function count_tblRows() {
+		$sql =<<<SPAGHETTIANDMEATBALLSAFORYOU
+SELECT COUNT([accountCodeID]) AS cnt, [segmentTitle]
+FROM [dbo].[mip_tblAcctCode_0]
+GROUP BY [segmentTitle]
+
+UNION
+
+
+SELECT COUNT([accountCodeID]) AS cnt, [segmentTitle]
+FROM [dbo].[mip_tblAcctCode_1]
+GROUP BY [segmentTitle]
+
+UNION 
+
+SELECT COUNT([accountCodeID]) AS cnt, [segmentTitle]
+FROM [dbo].[mip_tblAcctCode_10]
+GROUP BY [segmentTitle]
+
+UNION 
+
+SELECT COUNT([accountCodeID]) AS cnt, [segmentTitle]
+FROM [dbo].[mip_tblAcctCode_2]
+GROUP BY [segmentTitle]
+
+UNION 
+
+SELECT COUNT([accountCodeID]) AS cnt, [segmentTitle]
+FROM [dbo].[mip_tblAcctCode_3]
+GROUP BY [segmentTitle]
+
+UNION 
+
+SELECT COUNT([accountCodeID]) AS cnt, [segmentTitle]
+FROM [dbo].[mip_tblAcctCode_4]
+GROUP BY [segmentTitle]
+
+UNION 
+
+SELECT COUNT([accountCodeID]) AS cnt, [segmentTitle]
+FROM [dbo].[mip_tblAcctCode_5]
+GROUP BY [segmentTitle]
+
+UNION 
+
+SELECT COUNT([accountCodeID]) AS cnt, [segmentTitle]
+FROM [dbo].[mip_tblAcctCode_7]
+GROUP BY [segmentTitle]
+
+UNION 
+
+SELECT COUNT([accountCodeID]) AS cnt, [segmentTitle]
+FROM [dbo].[mip_tblAcctCode_9]
+GROUP BY [segmentTitle]
+
+UNION 
+
+SELECT COUNT ([id]) AS cnt, 'VEN' AS [segmentTitle] FROM [dbo].[mip_tblAPVendor]
+SPAGHETTIANDMEATBALLSAFORYOU;
+		$qry = $this->db->query($sql);
+		if ($qry->num_rows() > 0 ) {
+			return $qry->result_array();
+			// return $qry->result();
+		} else {
+			return FALSE;
+		}
+	}
+
+
 	public function truncate_Combo() {
 		$this->db->truncate('mip_tblComboEdit');
 	}

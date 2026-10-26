@@ -49,36 +49,36 @@ class Reports extends CI_Controller {
 			foreach($txns as $t) {
 				$stat = ($t->hold == 1) ? "HOLD" : "pending";
 				// echo $t->guid .'<br />'. PHP_EOL;
-				$sheet->setCellValueByColumnAndRow( 1, $row, strval($t->txn_no) );
-				$sheet->setCellValueByColumnAndRow( 2, $row, date('m/d/y', strtotime($t->date_created)) );
-				$sheet->setCellValueByColumnAndRow( 3, $row, date('m/d/y', strtotime($t->date_due)) );
-				$sheet->setCellValueByColumnAndRow( 4, $row, $t->entity_id );
-				$sheet->setCellValueByColumnAndRow( 5, $row, $t->region_id );
-				$sheet->setCellValueByColumnAndRow( 6, $row, $t->site_id );
-				$sheet->setCellValueByColumnAndRow( 7, $row, $t->dept_id );
-				$sheet->setCellValueByColumnAndRow( 8, $row, $t->serv_id );
-				$sheet->setCellValueByColumnAndRow( 9, $row, $t->gla_id );
-				$sheet->setCellValueByColumnAndRow(10, $row, $t->fy ); 											// J
-				$sheet->setCellValueByColumnAndRow(11, $row, $t->payer_id );
-				$sheet->setCellValueByColumnAndRow(12, $row, $t->person_id );
-				$sheet->setCellValueByColumnAndRow(13, $row, $t->vendor_id );
-				$sheet->setCellValueByColumnAndRow(14, $row, number_format($t->amount, 2, '.', '') );
-				$sheet->setCellValueByColumnAndRow(15, $row, $t->invoice_no );
-				$sheet->setCellValueByColumnAndRow(16, $row, date('m/d/y', strtotime($t->invoice_date)) );
-				$sheet->setCellValueByColumnAndRow(17, $row, $t->requester );
-				$sheet->setCellValueByColumnAndRow(18, $row, $stat );
-				$sheet->setCellValueByColumnAndRow(19, $row, str_replace(array('"', '\r', '\n', '\t'), '', $t->note) );
+				$sheet->setCellValue( [1, $row], strval($t->txn_no) );
+				$sheet->setCellValue( [2, $row], date('m/d/y', strtotime($t->date_created)) );
+				$sheet->setCellValue( [3, $row], date('m/d/y', strtotime($t->date_due)) );
+				$sheet->setCellValue( [4, $row], $t->entity_id );
+				$sheet->setCellValue( [5, $row], $t->region_id );
+				$sheet->setCellValue( [6, $row], $t->site_id );
+				$sheet->setCellValue( [7, $row], $t->dept_id );
+				$sheet->setCellValue( [8, $row], $t->serv_id );
+				$sheet->setCellValue( [9, $row], $t->gla_id );
+				$sheet->setCellValue([10, $row], $t->fy ); 											// J
+				$sheet->setCellValue([11, $row], $t->payer_id );
+				$sheet->setCellValue([12, $row], $t->person_id );
+				$sheet->setCellValue([13, $row], $t->vendor_id );
+				$sheet->setCellValue([14, $row], number_format($t->amount, 2, '.', '') );
+				$sheet->setCellValue([15, $row], $t->invoice_no );
+				$sheet->setCellValue([16, $row], date('m/d/y', strtotime($t->invoice_date)) );
+				$sheet->setCellValue([17, $row], $t->requester );
+				$sheet->setCellValue([18, $row], $stat );
+				$sheet->setCellValue([19, $row], str_replace(array('"', '\r', '\n', '\t'), '', $t->note) );
 				if ($t->hold == 1) {
-					$sheet->setCellValueByColumnAndRow(20, $row, $t->hold_userid ); 							// T
-					$sheet->setCellValueByColumnAndRow(21, $row, str_replace(array('"', '\r', '\n', '\t'), '', $t->holdreason) );
+					$sheet->setCellValue([20, $row], $t->hold_userid ); 							// T
+					$sheet->setCellValue([21, $row], str_replace(array('"', '\r', '\n', '\t'), '', $t->holdreason) );
 				}
 				if ($t->ulen > 100) {
 					$url = 'https://aprequest.ascentria.org/helpers/dld.aspx?guid='. $t->guid;
-					$sheet->setCellValueByColumnAndRow(22, $row, '[click for attachment]' );
+					$sheet->setCellValue([22, $row], '[click for attachment]' );
 					$sheet->getHyperlink('V'. $row)->setURL($url);
 				}
 				$rql = 'https://aprequest.ascentria.org/singletransaction.aspx?txn='. $t->txn_no;
-				$sheet->setCellValueByColumnAndRow(24, $row, '[request form]' );
+				$sheet->setCellValue([24, $row], '[request form]' );
 				$sheet->getHyperlink('X'. $row)->setURL($rql);
 
 				$row++;
