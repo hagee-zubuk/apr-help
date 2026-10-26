@@ -86,9 +86,18 @@ if (!is_int($logtime)) {
 <div style="font-size:80%;">
     <p>Current counts</p>
     <div>
-<pre>
-    <?=var_dump($counts)?>
-</pre>        
+<table>
+    <thead><tr><th>typ</th><th>cnt</th></tr></thead>
+    <tbody>
+<?php
+foreach $counts as $c {
+    echo '<tr><td>'. strtoupper(substr($c['segmentTitle'], 0, 3)) .'</td>';
+    echo '<td>'. $c['cnt'] .'</td></tr>';
+}
+?>        
+    </tbody>
+</table>
+<?=var_dump($counts)?>      
     </div>
 </div>
         </div><!-- column -->
