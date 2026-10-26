@@ -90,7 +90,7 @@ if (!is_int($logtime)) {
     <thead><tr><th>typ</th><th>cnt</th></tr></thead>
     <tbody>
 <?php
-foreach $counts as $c {
+foreach ($counts as $c) {
     echo '<tr><td>'. strtoupper(substr($c['segmentTitle'], 0, 3)) .'</td>';
     echo '<td>'. $c['cnt'] .'</td></tr>';
 }
