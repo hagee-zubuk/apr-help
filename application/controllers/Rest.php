@@ -457,7 +457,16 @@ class Rest extends CI_Controller {
                 }
                 $msgs .= PHP_EOL. 'Type: '. $aryR->type;
                 $msgs .= PHP_EOL .'got: '. ($sz * $pg_num) .' of '. $total_rows .' in '. $sz . '-row chunks'. PHP_EOL;
-                $this->Mip_model->truncate_Vendor();
+                if ($total_rows > 0) {
+                    $this->Mip_model->truncate_Vendor();
+                } else {
+                    // this is a failure condition!
+                    echo '*** ERROR CONDITION DETECTED: no workable rows- , or unfamiliar schema was returned'. PHP_EOL . PHP_EOL;
+                    echo $debug;
+                    echo PHP_EOL . PHP_EOL;
+                    var_dump($aryR);
+                }
+                
                 $batch = $this->mkGUID();
                 set_time_limit(600);
                 flush();
@@ -621,7 +630,15 @@ class Rest extends CI_Controller {
 
                 $msgs .= PHP_EOL .'should get: '. $total_rows .' rows in '. $sz . '-row chunks'. PHP_EOL . PHP_EOL;
 
-                $this->Mip_model->truncate_Combo();
+                if ($total_rows > 0) {
+                    $this->Mip_model->truncate_Combo();
+                } else {
+                    // this is a failure condition!
+                    echo '*** ERROR CONDITION DETECTED: no workable rows- , or unfamiliar schema was returned'. PHP_EOL . PHP_EOL;
+                    echo $debug;
+                    echo PHP_EOL . PHP_EOL;
+                    var_dump($aryR);
+                }
                 
                 $batch = $this->mkGUID();
                 set_time_limit(600);
@@ -792,7 +809,15 @@ class Rest extends CI_Controller {
                 }
                 
                 $msgs .= PHP_EOL .'got: '. ($sz * $pg_num) .' of '. $total_rows .' in '. $sz . '-row chunks'. PHP_EOL;
-                $this->Mip_model->truncate_AllMIP();
+                if ($total_rows > 0) {
+                    $this->Mip_model->truncate_AllMIP();
+                } else {
+                    // this is a failure condition!
+                    echo '*** ERROR CONDITION DETECTED: no workable rows- , or unfamiliar schema was returned'. PHP_EOL . PHP_EOL;
+                    echo $debug;
+                    echo PHP_EOL . PHP_EOL;
+                    var_dump($aryR);
+                }
                 $batch = $this->mkGUID();
                 set_time_limit(600);
                 flush();

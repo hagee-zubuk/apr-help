@@ -97,7 +97,6 @@ foreach ($counts as $c) {
 ?>        
     </tbody>
 </table>
-<?=var_dump($counts)?>      
     </div>
 </div>
         </div><!-- column -->
