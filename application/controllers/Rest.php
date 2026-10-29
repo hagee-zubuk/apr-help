@@ -805,7 +805,7 @@ class Rest extends CI_Controller {
                     $debug .= PHP_EOL .'*** ERROR!'. PHP_EOL .'REST call returned unexpected schema:'. PHP_EOL . PHP_EOL .
                             $json . PHP_EOL . PHP_EOL . PHP_EOL;
                     $this->debug .= $debug;
-                    return FALSE;
+                    // return FALSE;
                 }
                 
                 $msgs .= PHP_EOL .'got: '. ($sz * $pg_num) .' of '. $total_rows .' in '. $sz . '-row chunks'. PHP_EOL;
@@ -974,6 +974,7 @@ class Rest extends CI_Controller {
                 if (property_exists($aryR, 'total')) {
                     $total_rows = $aryR->total;    
                     $msgs .= PHP_EOL .'**** total rows to process: '. $total_rows .' ***' . PHP_EOL;
+                    $this->Mip_model->truncate_tblRow($seg);
                 } else {
                     $msgs .= PHP_EOL .'**** total processed rows unknown: ***' . PHP_EOL;
                     $msgs .= PHP_EOL . print_r($aryR, TRUE) . PHP_EOL;
